@@ -1,0 +1,28 @@
+.tw-bg-purple {
+  background-color: #c084fc;
+}
+
+.tw-text-white {
+  color: white;
+}
+
+.tw-p-4 {
+  padding: 1rem;
+}
+
+.tw-rounded {
+  border-radius: 0.25rem;
+}
+
+.tw-mt-4 {
+  margin-top: 1rem;
+}
+
+.tw-text-center {
+  text-align: center;
+}
+
+.tw-text-xl {
+  font-size: 1.25rem;
+  font-weight: bold;
+} 

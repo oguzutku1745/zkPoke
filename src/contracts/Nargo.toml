@@ -1,0 +1,11 @@
+[package]
+name = "private_register"
+authors = ["kyatzu"]
+compiler_version = ">=0.18.0"
+type = "contract"
+
+[dependencies]
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.86.0", directory="noir-projects/aztec-nr/aztec" }
+binary_merkle_root = { git = "https://github.com/privacy-scaling-explorations/zk-kit.noir", tag = "main", directory = "packages/binary-merkle-root" }
+poseidon = { tag = "v0.1.0", git = "https://github.com/noir-lang/poseidon" }
+protocol_types = { git="https://github.com/AztecProtocol/aztec-packages/", tag="alpha-testnet", directory="noir-projects/noir-protocol-circuits/crates/types"}

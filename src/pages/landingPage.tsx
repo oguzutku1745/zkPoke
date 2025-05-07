@@ -1,0 +1,156 @@
+import { useState, useEffect } from 'react';
+import { usePrivateRegister } from '../hooks/usePrivateRegister';
+import { useNavigate } from 'react-router-dom';
+import { useContractContext } from '../context/ContractContext';
+
+export function LandingPage() {
+  const { deploy, initCredentialNotes, initializeTree, wait } = usePrivateRegister();
+  const { contract } = useContractContext(); // Get contract from context
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [step, setStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // If we already have a contract, redirect to dashboard
+  useEffect(() => {
+    if (contract && !isCreatingAccount) {
+      navigate('/dashboard');
+    }
+  }, [contract, navigate, isCreatingAccount]);
+
+  const createAccount = async () => {
+    setIsCreatingAccount(true);
+    setError(null);
+    
+    try {
+      // Step 1: Deploy contract
+      setStep(1);
+      const result = await deploy();
+      
+      if (!result) {
+        throw new Error('Contract deployment failed');
+      }
+      
+      // Step 2: Initialize credential notes
+      setStep(2);
+      await initCredentialNotes();
+      
+      // Step 3: Initialize Merkle tree
+      setStep(3);
+      await initializeTree();
+      
+      // Step 4: Navigate to credential selection
+      setStep(4);
+      navigate('/select-credentials');
+    } catch (err) {
+      console.error('Error creating account:', err);
+      setError('Failed to create account. Please try again.');
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
+  return (
+    <div className="flex h-screen">
+      {/* Left Panel */}
+      <div className="w-full md:w-1/2 bg-slate-900 p-10 flex flex-col justify-center">
+        <div className="max-w-md mx-auto">
+          <h1 className="text-4xl font-bold text-white mb-4">Welcome to zkPoke</h1>
+          <p className="text-gray-400 mb-10">The real intention based connection platform</p>
+          
+          <div className="space-y-6">
+            <div className="flex items-center">
+              <div className="mr-3 flex-shrink-0">
+                <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <p className="text-white">Secure zero-knowledge proofs</p>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="mr-3 flex-shrink-0">
+                <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <p className="text-white">Privacy-focused connections</p>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="mr-3 flex-shrink-0">
+                <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-white">Instagram onboarding with zk-TLS technology</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right Panel */}
+      <div className="hidden md:flex md:w-1/2 bg-white p-10 flex-col justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <div className="mb-2">
+            <svg className="h-12 w-12 mx-auto text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16-6l-8 8-8-8" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l3 3 3-3" />
+            </svg>
+          </div>
+          
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Login or Create Account</h2>
+          <p className="text-gray-500 mb-8">Connect with zk-proofs to be fully private</p>
+          
+          <button
+            disabled={true}
+            className="w-full mb-4 flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-400 cursor-not-allowed"
+          >
+            <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            Continue with your proofs
+          </button>
+          
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+          
+          <button
+            onClick={createAccount}
+            disabled={isCreatingAccount}
+            className="w-full py-3 px-4 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200"
+          >
+            {isCreatingAccount ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {step === 1 ? "Deploying contract..." : 
+                 step === 2 ? "Initializing credentials..." : 
+                 step === 3 ? "Building verification tree..." : 
+                 "Creating account..."}
+              </div>
+            ) : "Create New Account"}
+          </button>
+          
+          {error && (
+            <div className="mt-4 text-sm text-red-600 bg-red-50 p-2 rounded">
+              {error}
+            </div>
+          )}
+          
+          <p className="text-xs text-gray-500 mt-8">
+            By continuing, you agree to our <a href="#" className="text-indigo-600 hover:text-indigo-500">Terms of Service</a> and <a href="#" className="text-indigo-600 hover:text-indigo-500">Privacy Policy</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+} 
