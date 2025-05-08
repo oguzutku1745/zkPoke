@@ -14,13 +14,6 @@ export function LandingPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // If we already have a contract, redirect to dashboard
-  useEffect(() => {
-    if (contract && !isCreatingAccount && !isCheckingProofs) {
-      navigate('/dashboard');
-    }
-  }, [contract, navigate, isCreatingAccount, isCheckingProofs]);
-
   const createAccount = async () => {
     setIsCreatingAccount(true);
     setError(null);

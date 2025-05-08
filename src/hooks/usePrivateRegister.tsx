@@ -304,6 +304,21 @@ export function usePrivateRegister() {
     }
   };
 
+  // New function to clear all persisted data (useful for debugging or for "logout" functionality)
+  const clearPersistedData = () => {
+    // Clear all localStorage items
+    localStorage.removeItem('zkpoke_contract_address');
+    localStorage.removeItem('zkpoke_credentials');
+    localStorage.removeItem('zkpoke_root');
+    
+    // Reset state
+    setContract(null);
+    setCredentials([]);
+    setRoot(null);
+    
+    toast.success('All data cleared successfully');
+  };
+
   return { 
     deploy, 
     contract, 
@@ -315,6 +330,7 @@ export function usePrivateRegister() {
     addCredential,
     credentials,
     tree,
-    root
+    root,
+    clearPersistedData
   };
 } 

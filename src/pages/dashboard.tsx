@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePrivateRegister } from '../hooks/usePrivateRegister';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useContractContext } from '../context/ContractContext';
 
 // Define the credential types with their claim type values - keep in sync with selectCredentials
@@ -58,7 +58,7 @@ const CREDENTIALS = [
 ];
 
 export function DashboardPage() {
-  const { getAllCredentials, verifyCredential, wait } = usePrivateRegister();
+  const { getAllCredentials, verifyCredential, wait, clearPersistedData } = usePrivateRegister();
   const { contract, root } = useContractContext();
   const [userCredentials, setUserCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -121,26 +121,48 @@ export function DashboardPage() {
   const handleAddMoreCredentials = () => {
     navigate('/select-credentials');
   };
+  
+  const handleSignOut = () => {
+    clearPersistedData();
+    navigate('/');
+  };
+  
+  // Force navigation to landing page
+  const goToLandingPage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Use window.location for a hard redirect to ensure we're not caught in any React Router issues
+    window.location.href = '/';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center">
+          <a 
+            href="/" 
+            onClick={goToLandingPage}
+            className="flex items-center"
+          >
             <svg className="h-8 w-8 text-slate-900" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 16V16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 12L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="ml-2 font-semibold text-slate-900 cursor-pointer" onClick={() => navigate('/')}>zkPoke</span>
-          </div>
+            <span className="ml-2 font-semibold text-slate-900">zkPoke</span>
+          </a>
           <nav className="flex space-x-4">
             <button 
               onClick={handleAddMoreCredentials}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               Add More Credentials
+            </button>
+            <button 
+              onClick={handleSignOut}
+              className="text-sm font-medium text-red-600 hover:text-red-700"
+            >
+              Sign Out
             </button>
           </nav>
         </div>
@@ -178,9 +200,10 @@ export function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {userCredentials.map((credential, index) => {
+            {userCredentials
+              .filter(credential => credential.claim_hash !== 0n) // Filter out credentials with claim_hash=0
+              .map((credential, index) => {
               const credInfo = getCredentialInfo(credential.claim_type);
-              const status = verificationStatus[Number(credential.claim_type)];
               
               return (
                 <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -199,57 +222,18 @@ export function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">{credInfo.description}</p>
+                          <p className="mt-1 text-sm text-gray-500">{credInfo.description}</p>
+                          <div className="mt-2 text-xs text-gray-500">
+                            <p>Claim Type: {credential.claim_type.toString()}</p>
+                            <p>Claim Hash: {credential.claim_hash.toString()}</p>
+                          </div>
                         </div>
-                        <div>
-                          {status === 'verified' && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Verified
-                            </span>
-                          )}
-                          {status === 'failed' && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Failed
-                            </span>
-                          )}
+                        
+                        <div className="flex-shrink-0 ml-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Verified
+                          </span>
                         </div>
-                      </div>
-                      
-                      <div className="mt-4 space-y-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="font-medium text-gray-700 mr-2">Claim Hash:</span>
-                          <span>{credential.claim_hash.toString()}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="font-medium text-gray-700 mr-2">Claim Type:</span>
-                          <span>{credential.claim_type.toString()}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <button
-                          onClick={() => handleVerifyCredential(Number(credential.claim_type))}
-                          disabled={wait || status === 'verified'}
-                          className={`
-                            px-4 py-2 rounded-md text-sm font-medium
-                            ${wait 
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                              : status === 'verified'
-                                ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                            }
-                          `}
-                        >
-                          {wait ? (
-                            <div className="flex items-center">
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Verifying...
-                            </div>
-                          ) : status === 'verified' ? "Verified" : "Verify Credential"}
-                        </button>
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { usePrivateRegister } from '../hooks/usePrivateRegister';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useContractContext } from '../context/ContractContext';
 import { ZKPassport } from '@zkpassport/sdk';
 import QRCode from 'react-qr-code';
@@ -80,6 +80,9 @@ export function SelectCredentialsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showInstagramForm, setShowInstagramForm] = useState(false);
   const [instagramEmail, setInstagramEmail] = useState('');
+  const [instagramUserId, setInstagramUserId] = useState('');
+  const [instagramEmailFile, setInstagramEmailFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   // ZKPassport specific states
   const [showZkPassportFlow, setShowZkPassportFlow] = useState(false);
@@ -162,13 +165,13 @@ export function SelectCredentialsPage() {
     try {
       // Initialize the ZKPassport SDK with devMode enabled
       if (!zkpassportRef.current) {
-        zkpassportRef.current = new ZKPassport("zkpoke.com");
+        zkpassportRef.current = new ZKPassport("https://aztec.network/");
       }
       
       // Create a verification request
       const query = await zkpassportRef.current.request({
         name: "zkPoke",
-        logo: "https://zkpoke.com/logo.png", // Replace with your actual logo URL
+        logo: "https://aztec.network/logo.png", // Replace with your actual logo URL
         purpose: "Age verification for zkPoke",
         scope: "zkpoke-verification", // Optional scope for unique identifier
         devMode: true, // Enable dev mode for testing
@@ -308,6 +311,8 @@ export function SelectCredentialsPage() {
       setShowInstagramForm(false);
       setSelectedCredential(null);
       setInstagramEmail('');
+      setInstagramUserId('');
+      setInstagramEmailFile(null);
     } catch (err) {
       console.error('Error adding Instagram credential:', err);
       setError('Failed to add Instagram credential. Please try again.');
@@ -318,6 +323,70 @@ export function SelectCredentialsPage() {
 
   const handleViewDashboard = () => {
     navigate('/dashboard');
+  };
+
+  // Function to simulate ZK Passport credential
+  const handleSimulateZkPassport = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const credential = CREDENTIALS.find(cred => cred.id === 'zk-passport');
+      if (credential) {
+        // Add ZK Passport with claim hash 1234
+        await addCredential(credential.claimType, 1234);
+      }
+      
+      setSuccess('ZK Passport credential simulated successfully!');
+      
+      // Reset the flow after successful addition
+      setTimeout(() => {
+        setShowZkPassportFlow(false);
+        setSelectedCredential(null);
+      }, 2000);
+    } catch (err) {
+      console.error('Error simulating ZK Passport credential:', err);
+      setError('Failed to simulate ZK Passport credential. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // File drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+  
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+  
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+  
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.name.endsWith('.eml')) {
+        setInstagramEmailFile(file);
+      } else {
+        // Show an error message for incorrect file type
+        setError('Please upload a valid .eml file');
+        setTimeout(() => setError(null), 3000);
+      }
+    }
   };
 
   // Render ZK Passport verification flow
@@ -390,6 +459,18 @@ export function SelectCredentialsPage() {
             </div>
           )}
           
+          {/* Success message from simulation */}
+          {success && (
+            <div className="mt-6 bg-green-50 border border-green-200 rounded-md p-4">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-green-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-green-700 font-medium">{success}</p>
+              </div>
+            </div>
+          )}
+          
           {['failed', 'error', 'rejected'].includes(verificationStatus) && (
             <div className="mt-6 bg-red-50 border border-red-200 rounded-md p-4">
               <div className="flex items-center mb-2">
@@ -413,7 +494,29 @@ export function SelectCredentialsPage() {
           )}
         </div>
         
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-between mt-4">
+          <button
+            onClick={handleSimulateZkPassport}
+            disabled={isSubmitting || wait}
+            className={`
+              py-2 px-4 rounded-md font-medium transition-all duration-200
+              ${(isSubmitting || wait) 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+              }
+            `}
+          >
+            {isSubmitting || wait ? (
+              <div className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </div>
+            ) : "Simulate credential"}
+          </button>
+          
           <button
             onClick={() => setShowZkPassportFlow(false)}
             className="py-2 px-4 rounded-md font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
@@ -425,19 +528,30 @@ export function SelectCredentialsPage() {
     );
   };
 
+  // Force navigation to landing page
+  const goToLandingPage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Use window.location for a hard redirect to ensure we're not caught in any React Router issues
+    window.location.href = '/';
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="flex items-center">
+          <a 
+            href="/" 
+            onClick={goToLandingPage}
+            className="flex items-center bg-transparent border-0 p-0 cursor-pointer focus:outline-none"
+          >
             <svg className="h-8 w-8 text-slate-900" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 16V16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 12L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="ml-2 font-semibold text-slate-900 cursor-pointer" onClick={() => navigate('/')}>zkPoke</span>
-          </div>
+            <span className="ml-2 font-semibold text-slate-900">zkPoke</span>
+          </a>
           <div>
             <button className="text-sm text-slate-600 hover:text-slate-900 mr-4">Help</button>
             <button className="text-sm text-slate-600 hover:text-slate-900">About</button>
@@ -457,9 +571,9 @@ export function SelectCredentialsPage() {
         ) : showInstagramForm ? (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-10">
             <h2 className="text-xl font-semibold mb-4">Connect Your Instagram</h2>
-            <p className="text-gray-600 mb-6">Enter your email address to verify your Instagram account.</p>
+            <p className="text-gray-600 mb-6">Verify your Instagram account by providing your email and uploading an Instagram email.</p>
             
-            <div className="mb-4">
+            <div className="mb-6">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <input
                 type="email"
@@ -471,7 +585,147 @@ export function SelectCredentialsPage() {
               />
             </div>
             
-            <div className="flex space-x-4">
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-1">
+                <label htmlFor="emailFile" className="block text-sm font-medium text-gray-700">
+                  Upload Instagram Email (.eml file)
+                  <span className="ml-1 text-xs text-gray-500 font-normal">
+                    (An email from Instagram saved as .eml file)
+                  </span>
+                </label>
+                <button 
+                  type="button"
+                  onClick={() => alert("To get an .eml file:\n1. Open an email from Instagram in your email client\n2. Save it as an .eml file\n3. Upload it here")}
+                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  How to get an .eml file?
+                </button>
+              </div>
+              
+              <div 
+                className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+                  instagramEmailFile 
+                    ? 'border-green-500 bg-green-50' 
+                    : isDragging
+                      ? 'border-indigo-500 bg-indigo-50 border-solid'
+                      : 'border-gray-300 border-dashed'
+                } rounded-md transition-all duration-300`}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="space-y-1 text-center">
+                  {instagramEmailFile ? (
+                    <>
+                      <svg className="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <p className="text-sm font-medium text-green-600">File uploaded successfully!</p>
+                      <p className="text-xs text-green-600">{instagramEmailFile.name} ({Math.round(instagramEmailFile.size / 1024)} KB)</p>
+                      <button 
+                        type="button" 
+                        onClick={() => setInstagramEmailFile(null)}
+                        className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Remove file
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <svg className={`mx-auto h-12 w-12 ${isDragging ? 'text-indigo-500' : 'text-gray-400'}`} stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex text-sm text-gray-600">
+                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                          <span>Upload a file</span>
+                          <input 
+                            id="file-upload" 
+                            name="file-upload" 
+                            type="file" 
+                            accept=".eml" 
+                            className="sr-only"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                const file = e.target.files[0];
+                                if (file.name.endsWith('.eml')) {
+                                  setInstagramEmailFile(file);
+                                } else {
+                                  // Show an error message for incorrect file type
+                                  setError('Please upload a valid .eml file');
+                                  setTimeout(() => setError(null), 3000);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className={`text-xs ${isDragging ? 'text-indigo-500 font-medium' : 'text-gray-500'}`}>
+                        {isDragging ? 'Drop your file here' : 'EML files up to 10MB'}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">Instagram User ID</label>
+              <input
+                type="text"
+                id="userId"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="your_instagram_id"
+                value={instagramUserId}
+                onChange={(e) => setInstagramUserId(e.target.value)}
+              />
+            </div>
+            
+            {/* Verification progress checklist */}
+            <div className="mb-6 bg-blue-50 p-4 rounded-md border border-blue-200">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Verification Checklist</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center">
+                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full mr-2 ${instagramEmail ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                    {instagramEmail ? (
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : '1'}
+                  </span>
+                  <span className={`text-sm ${instagramEmail ? 'text-blue-800' : 'text-gray-600'}`}>
+                    Email address provided
+                  </span>
+                </li>
+                <li className="flex items-center">
+                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full mr-2 ${instagramEmailFile ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                    {instagramEmailFile ? (
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : '2'}
+                  </span>
+                  <span className={`text-sm ${instagramEmailFile ? 'text-blue-800' : 'text-gray-600'}`}>
+                    Instagram email file uploaded
+                  </span>
+                </li>
+                <li className="flex items-center">
+                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full mr-2 ${instagramUserId ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                    {instagramUserId ? (
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : '3'}
+                  </span>
+                  <span className={`text-sm ${instagramUserId ? 'text-blue-800' : 'text-gray-600'}`}>
+                    Instagram user ID entered
+                  </span>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="flex justify-between">
               <button
                 onClick={handleSimulateInstagram}
                 disabled={isSubmitting || wait}
@@ -479,7 +733,7 @@ export function SelectCredentialsPage() {
                   py-2 px-4 rounded-md font-medium transition-all duration-200
                   ${(isSubmitting || wait) 
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                    : 'bg-gray-600 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500'
                   }
                 `}
               >
@@ -494,15 +748,32 @@ export function SelectCredentialsPage() {
                 ) : "Simulate"}
               </button>
               
-              <button
-                onClick={() => {
-                  setShowInstagramForm(false);
-                  setInstagramEmail('');
-                }}
-                className="py-2 px-4 rounded-md font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
-              >
-                Cancel
-              </button>
+              <div className="flex space-x-4">
+                <button
+                  disabled={!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait}
+                  className={`
+                    py-2 px-4 rounded-md font-medium transition-all duration-200
+                    ${(!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait) 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                    }
+                  `}
+                >
+                  Verify
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowInstagramForm(false);
+                    setInstagramEmail('');
+                    setInstagramUserId('');
+                    setInstagramEmailFile(null);
+                  }}
+                  className="py-2 px-4 rounded-md font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         ) : (
