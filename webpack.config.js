@@ -14,6 +14,10 @@ export default (_, argv) => ({
   module: {
     rules: [
       {
+        test: /\.m?js$/,                    
+        resolve: { fullySpecified: false }, 
+      },
+      {
         test: /\.tsx?$/,
         loader: 'ts-loader',
       },
@@ -38,6 +42,10 @@ export default (_, argv) => ({
       },
     }),
     new webpack.ProvidePlugin({ Buffer: ['buffer', 'Buffer'] }),
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+      process: 'process/browser',
+    }),
   ],
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
@@ -55,6 +63,9 @@ export default (_, argv) => ({
       util: require.resolve('util/'),
       stream: require.resolve('stream-browserify'),
       string_decoder: require.resolve('string_decoder/'),
+      crypto: require.resolve('crypto-browserify'),
+      vm:      require.resolve('vm-browserify'),
+      process: require.resolve('process/browser'),
     },
   },
   devServer: {

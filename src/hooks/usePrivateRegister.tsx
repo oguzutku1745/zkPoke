@@ -42,6 +42,7 @@ export function usePrivateRegister() {
       });
 
       setContract(deployedContract);
+      console.log("Contract deployed", deployedContract);
       return deployedContract;
     } catch (error) {
       console.error('Error deploying contract:', error);
@@ -52,9 +53,13 @@ export function usePrivateRegister() {
     }
   };
 
-  const initCredentialNotes = async () => {
-    if (!contract) {
+  const initCredentialNotes = async (directContract?: any) => {
+    // Use the passed contract if available, otherwise use the context contract
+    const contractToUse = directContract || contract;
+    
+    if (!contractToUse) {
       toast.error('Contract not deployed yet');
+      console.log("Contract object is null", contractToUse);
       return;
     }
 
@@ -64,17 +69,17 @@ export function usePrivateRegister() {
     try {
       // Create batch calls for initializing credential notes 0-7
       const calls1 = [
-        contract.methods.init_credential_note(0),
-        contract.methods.init_credential_note(1),
-        contract.methods.init_credential_note(2),
-        contract.methods.init_credential_note(3),
+        contractToUse.methods.init_credential_note(0),
+        contractToUse.methods.init_credential_note(1),
+        contractToUse.methods.init_credential_note(2),
+        contractToUse.methods.init_credential_note(3),
       ];
       
       const calls2 = [
-        contract.methods.init_credential_note(4),
-        contract.methods.init_credential_note(5),
-        contract.methods.init_credential_note(6),
-        contract.methods.init_credential_note(7),
+        contractToUse.methods.init_credential_note(4),
+        contractToUse.methods.init_credential_note(5),
+        contractToUse.methods.init_credential_note(6),
+        contractToUse.methods.init_credential_note(7),
       ];
 
       const batch1 = new BatchCall(wallet, calls1);
@@ -93,7 +98,7 @@ export function usePrivateRegister() {
       );
 
       // Update the credentials state
-      await getAllCredentials();
+      return await getAllCredentials(contractToUse);
     } catch (error) {
       console.error('Error initializing credential notes:', error);
       toast.error('Error initializing credential notes');
@@ -102,9 +107,13 @@ export function usePrivateRegister() {
     }
   };
 
-  const getAllCredentials = async () => {
-    if (!contract) {
+  const getAllCredentials = async (directContract?: any) => {
+    // Use the passed contract if available, otherwise use the context contract
+    const contractToUse = directContract || contract;
+    
+    if (!contractToUse) {
       toast.error('Contract not deployed yet');
+      console.log("Contract object is null", contractToUse);
       return;
     }
 
@@ -112,7 +121,7 @@ export function usePrivateRegister() {
     const wallet = await deployerEnv.getWallet();
 
     try {
-      const result = await contract.methods.read_all_credentials(wallet.getAddress()).simulate();
+      const result = await contractToUse.methods.read_all_credentials(wallet.getAddress()).simulate();
       
       // Extract valid credentials
       const validCredentials = result.storage
@@ -131,8 +140,12 @@ export function usePrivateRegister() {
     }
   };
 
-  const initializeTree = async () => {
-    if (!contract || credentials.length === 0) {
+  const initializeTree = async (directContract?: any, directCredentials?: CredentialNote[]) => {
+    // Use the passed parameters if available, otherwise use the context values
+    const contractToUse = directContract || contract;
+    const credentialsToUse = directCredentials || credentials;
+    
+    if (!contractToUse || credentialsToUse.length === 0) {
       toast.error('Contract not deployed or no credentials available');
       return;
     }
@@ -141,7 +154,7 @@ export function usePrivateRegister() {
     try {
       // Hash all credential notes
       const leaves: bigint[] = await Promise.all(
-        credentials.map(hashCredentialNote)
+        credentialsToUse.map(hashCredentialNote)
       );
 
       // Create a new tree and insert the leaves
@@ -154,7 +167,7 @@ export function usePrivateRegister() {
       // Update the verification root in the contract
       const wallet = await deployerEnv.getWallet();
       await toast.promise(
-        contract.methods.update_verification_root(newTree.root).send().wait(),
+        contractToUse.methods.update_verification_root(newTree.root).send().wait(),
         {
           pending: 'Updating verification root...',
           success: 'Verification root updated',

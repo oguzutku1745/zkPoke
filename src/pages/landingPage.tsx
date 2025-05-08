@@ -2,42 +2,46 @@ import { useState, useEffect } from 'react';
 import { usePrivateRegister } from '../hooks/usePrivateRegister';
 import { useNavigate } from 'react-router-dom';
 import { useContractContext } from '../context/ContractContext';
+import { CredentialNote } from '../utils/tree-utils';
 
 export function LandingPage() {
-  const { deploy, initCredentialNotes, initializeTree, wait } = usePrivateRegister();
+  const { deploy, initCredentialNotes, initializeTree, getAllCredentials, wait } = usePrivateRegister();
   const { contract } = useContractContext(); // Get contract from context
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isCheckingProofs, setIsCheckingProofs] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // If we already have a contract, redirect to dashboard
   useEffect(() => {
-    if (contract && !isCreatingAccount) {
+    if (contract && !isCreatingAccount && !isCheckingProofs) {
       navigate('/dashboard');
     }
-  }, [contract, navigate, isCreatingAccount]);
+  }, [contract, navigate, isCreatingAccount, isCheckingProofs]);
 
   const createAccount = async () => {
     setIsCreatingAccount(true);
     setError(null);
+    setSuccess(null);
     
     try {
       // Step 1: Deploy contract
       setStep(1);
-      const result = await deploy();
+      const deployedContract = await deploy();
       
-      if (!result) {
+      if (!deployedContract) {
         throw new Error('Contract deployment failed');
       }
       
       // Step 2: Initialize credential notes
       setStep(2);
-      await initCredentialNotes();
+      const credentials = await initCredentialNotes(deployedContract);
       
       // Step 3: Initialize Merkle tree
       setStep(3);
-      await initializeTree();
+      await initializeTree(deployedContract, credentials);
       
       // Step 4: Navigate to credential selection
       setStep(4);
@@ -47,6 +51,56 @@ export function LandingPage() {
       setError('Failed to create account. Please try again.');
     } finally {
       setIsCreatingAccount(false);
+    }
+  };
+
+  const continueWithProofs = async () => {
+    setIsCheckingProofs(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      // First check if contract exists
+      if (!contract) {
+        setError('No existing account found. Please create a new account.');
+        return;
+      }
+      
+      // Fetch all credentials
+      const credentials = await getAllCredentials();
+      
+      if (!credentials || credentials.length === 0) {
+        setError('No credentials found. Please create a new account.');
+        return;
+      }
+      
+      // Check for required proofs (zkPassport and Instagram)
+      const zkPassportProof = credentials.find((cred: CredentialNote) => cred.claim_type === 1n); // claimType 1 for zkPassport
+      const instagramProof = credentials.find((cred: CredentialNote) => cred.claim_type === 4n); // claimType 4 for Instagram
+      
+      if (!zkPassportProof || zkPassportProof.claim_hash === 0n) {
+        setError('ZK Passport proof is required but not found or not valid.');
+        return;
+      }
+      
+      if (!instagramProof || instagramProof.claim_hash === 0n) {
+        setError('Instagram proof is required but not found or not valid.');
+        return;
+      }
+      
+      // If we have both required proofs with non-zero claim_hash values
+      setSuccess('Verification successful! You can now continue to the app.');
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Error verifying proofs:', err);
+      setError('Failed to verify proofs. Please try again.');
+    } finally {
+      setIsCheckingProofs(false);
     }
   };
 
@@ -103,13 +157,30 @@ export function LandingPage() {
           <p className="text-gray-500 mb-8">Connect with zk-proofs to be fully private</p>
           
           <button
-            disabled={true}
-            className="w-full mb-4 flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-400 cursor-not-allowed"
+            onClick={continueWithProofs}
+            disabled={isCheckingProofs || isCreatingAccount}
+            className={`w-full mb-4 flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm 
+              ${isCheckingProofs 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+              } transition-all duration-200`}
           >
-            <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            Continue with your proofs
+            {isCheckingProofs ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Verifying proofs...
+              </div>
+            ) : (
+              <>
+                <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Continue with your proofs
+              </>
+            )}
           </button>
           
           <div className="relative my-6">
@@ -123,7 +194,7 @@ export function LandingPage() {
           
           <button
             onClick={createAccount}
-            disabled={isCreatingAccount}
+            disabled={isCreatingAccount || isCheckingProofs}
             className="w-full py-3 px-4 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200"
           >
             {isCreatingAccount ? (
@@ -143,6 +214,12 @@ export function LandingPage() {
           {error && (
             <div className="mt-4 text-sm text-red-600 bg-red-50 p-2 rounded">
               {error}
+            </div>
+          )}
+          
+          {success && (
+            <div className="mt-4 text-sm text-green-600 bg-green-50 p-2 rounded">
+              {success}
             </div>
           )}
           

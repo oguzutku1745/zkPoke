@@ -10,6 +10,7 @@ const CREDENTIALS = [
     title: 'World ID',
     description: 'Verify your unique human identity',
     claimType: 3,
+    required: false,
     icon: (
       <svg className="h-6 w-6 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -21,6 +22,7 @@ const CREDENTIALS = [
     title: 'ZK Passport',
     description: 'Prove your identity privately',
     claimType: 1,
+    required: true,
     icon: (
       <svg className="h-6 w-6 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -32,6 +34,7 @@ const CREDENTIALS = [
     title: 'Proof your Instagram',
     description: 'Connect your social presence',
     claimType: 4,
+    required: true,
     icon: (
       <svg className="h-6 w-6 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -43,10 +46,11 @@ const CREDENTIALS = [
     title: 'Proof your University',
     description: 'Verify your academic credentials',
     claimType: 2,
+    required: false,
     icon: (
       <svg className="h-6 w-6 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
       </svg>
     ),
@@ -74,6 +78,7 @@ export function DashboardPage() {
         const creds = await getAllCredentials();
         if (creds) {
           setUserCredentials(creds);
+          console.log("User credentials", creds);
         }
       } catch (error) {
         console.error('Error fetching credentials:', error);
@@ -83,7 +88,7 @@ export function DashboardPage() {
     };
 
     fetchCredentials();
-  }, [contract, root, getAllCredentials, navigate]);
+  }, [contract, root, navigate]);
 
   const handleVerifyCredential = async (claimType: number) => {
     try {
@@ -104,6 +109,7 @@ export function DashboardPage() {
     return credential || {
       title: `Credential Type ${claimType}`,
       description: 'Custom credential',
+      required: false,
       icon: (
         <svg className="h-6 w-6 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -127,7 +133,7 @@ export function DashboardPage() {
               <path d="M12 16V16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 12L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="ml-2 font-semibold text-slate-900">zkPoke</span>
+            <span className="ml-2 font-semibold text-slate-900 cursor-pointer" onClick={() => navigate('/')}>zkPoke</span>
           </div>
           <nav className="flex space-x-4">
             <button 
@@ -185,7 +191,14 @@ export function DashboardPage() {
                     <div className="ml-4 flex-1">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">{credInfo.title}</h3>
+                          <div className="flex items-center">
+                            <h3 className="text-lg font-medium text-gray-900">{credInfo.title}</h3>
+                            {credInfo.required && (
+                              <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                                Required for zkPoke
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{credInfo.description}</p>
                         </div>
                         <div>
