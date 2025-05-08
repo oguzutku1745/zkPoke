@@ -13,6 +13,7 @@
     "dev": "yarn prep && webpack serve --mode development",
     "web": "webpack serve --mode development",
     "build": "yarn prep && webpack",
+    "buildweb": "webpack",
     "serve": "webpack serve --no-open --mode development --watch-files ./src/*",
     "formatting": "prettier --check ./src && eslint ./src",
     "formatting:fix": "prettier -w ./src",
