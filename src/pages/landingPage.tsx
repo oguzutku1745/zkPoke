@@ -86,7 +86,7 @@ export function LandingPage() {
       
       // Navigate to dashboard after a short delay
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/signals-dashboard');
       }, 2000);
       
     } catch (err) {

@@ -1,95 +1,104 @@
-# Private Register
+# zkPoke
 
-A secure credential management system built on the Aztec Network. This application allows users to manage private credentials with zero-knowledge proof verification through Merkle trees.
+A privacy-preserving social "poking" application built on Aztec Network. zkPoke allows users to securely reach out to others while selectively revealing personal information through zero-knowledge proofs.
 
-## Overview
+## Application Overview
 
-Private Register enables:
+zkPoke consists of two main components:
 
-- Initialization of credential placeholders
-- Addition of credential data
-- Creation of Merkle trees for efficient verification
-- Verification of credentials using zero-knowledge proofs
+### 1. Verification Layer
 
-## Features
+This is the foundation of the application that handles credential verification:
 
-- **Privacy-First Architecture**: Credentials are stored and verified in a privacy-preserving manner
-- **Zero-Knowledge Proofs**: Verify credential ownership without revealing the actual credential data
-- **Merkle Tree Verification**: Efficient cryptographic proofs of credential inclusion
-- **Intuitive Interface**: Step-by-step guided workflow for credential management
+- Manages user credentials through secure zero-knowledge proofs
+- Verifies user identity while preserving privacy
+- Built on Aztec Network's privacy infrastructure
+- May be made available as a public utility in the future
+
+### 2. zkPoke Messaging
+
+This is the social layer that enables private communication:
+
+- Users can "poke" others with a private message
+- Senders can selectively disclose personal information (age, university, etc.)
+- Senders don't know if the recipient is on the platform
+- Messages are stored as encrypted Notes with only a commitment hash on-chain
+- Recipients can view pokes when they access the platform
+- Recipients can respond by proving ownership and indicating interest (interested or not interested)
+
+## Technical Overview
+
+### Aztec's Private Notes
+
+zkPoke leverages Aztec's private Note system as the foundation for privacy:
+
+- **Notes** are encrypted data structures that serve as the building blocks for private state in Aztec
+- Each Note contains credential information that is fully encrypted on-chain
+- Only the owner can decrypt and view their own Notes, ensuring complete privacy
+- This allows us to store credential information without exposing it publicly
+
+### Binary Merkle Trees
+
+We use binary Merkle trees to efficiently handle credential verification:
+
+- A Merkle tree is a binary tree where each leaf node represents a credential (stored as a Note)
+- Each non-leaf node is a hash of its two child nodes
+- Only the Merkle root (a single hash value) needs to be stored on-chain
+- This structure allows proving credential ownership without revealing the credential details
+
+### Custom Merkle Tree Implementation
+
+We had to develop our own Merkle tree implementation for compatibility reasons:
+
+- Existing libraries like zk-kit use Poseidon hash which works with Noir but isn't compatible with Aztec Network
+- Our custom implementation uses Aztec's hash functions, ensuring compatibility with the Aztec ecosystem
+- This allows seamless integration with Aztec's privacy infrastructure
+- The result is a cryptographically secure Merkle tree that works natively with Aztec contracts
+
+### Credential Storage and Verification
+
+Privacy is maintained throughout the credential handling process:
+
+- Credentials are encrypted and stored as Notes in the user's Merkle tree
+- The contract only stores the Merkle root, not the individual credentials
+- When a user wants to prove credential ownership, they generate a zero-knowledge proof
+- This proof verifies that a specific credential exists in their tree without revealing any details
+- The verification checks that the credential's hash is included in the tree with the known root
+
+### Advantages of Our Approach
+
+Using Merkle trees with Aztec provides several key benefits:
+
+- **Enhanced Privacy**: Users control exactly what information they share
+- **Gas Efficiency**: Storing only the root hash significantly reduces on-chain storage costs
+- **Scalability**: Users can have many credentials without increasing on-chain costs
+- **Selective Disclosure**: Users can choose which credentials to expose in each interaction
+- **Proof Verification**: Claims can be cryptographically verified without revealing sensitive data
+
+### User Registration Flow
+
+zkPoke's registration process preserves privacy while establishing identity:
+
+1. User connects their wallet to the application
+2. User selects which credentials they want to add (e.g., age verification, university)
+3. Credentials are converted to Notes and added to a new Merkle tree
+4. The Merkle root is computed and stored in the contract
+5. A private registration is completed with the user's identity secured
+6. Only the user can access and prove ownership of their credentials
 
 ## Getting Started
 
-### Prerequisites
+To run the zkPoke application locally:
 
-- Node.js (v16+)
-- Aztec Network Sandbox environment
-- Noir compiler
+1. Clone this repository
+2. Install dependencies with `npm install`
+3. Start the development server with `npm run dev`
+4. Connect to the Aztec testnet in your browser
 
-### Installation
+## Learn More
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/private-register.git
-   cd private-register
-   ```
+For more information about the technologies used:
 
-2. Install dependencies:
-   ```
-   npm install
-   ```
-
-3. Make sure your Aztec PXE is running locally:
-   ```
-   docker-compose up -d
-   ```
-
-4. Start the development server:
-   ```
-   npm run dev
-   ```
-
-## Usage
-
-The application guides you through a step-by-step process:
-
-1. **Deploy Contract**: Initialize the PrivateRegister contract on the Aztec Network
-2. **Initialize Credentials**: Create placeholder credential notes for different claim types
-3. **Build Merkle Tree**: Generate a Merkle tree from your credentials for verification
-4. **Manage Credentials**: Add real credential data and verify existing credentials
-
-## Technical Implementation
-
-- **Frontend**: React with TypeScript
-- **Styling**: TailwindCSS
-- **Blockchain**: Aztec Network (Layer 2 privacy-focused rollup)
-- **Smart Contract**: Written in Noir (privacy-preserving language for Aztec)
-
-### Key Components
-
-- `src/hooks/usePrivateRegister.tsx`: React hook for contract interaction
-- `src/pages/privateRegister.tsx`: UI for credential management
-- `lean-imt-await/`: Incremental Merkle Tree implementation
-- `src/utils/tree-utils.ts`: Utilities for credential hashing and tree operations
-
-## Development
-
-To compile the Noir contract:
-
-```
-cd src/contracts
-nargo build
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Aztec Network for providing the privacy-focused L2 infrastructure
-- Noir language team for the privacy-preserving smart contract language
+- [Aztec Network](https://aztec.network/)
+- [Zero-Knowledge Proofs](https://ethereum.org/en/zero-knowledge-proofs/)
+- [Merkle Trees](https://ethereum.org/en/developers/tutorials/merkle-proofs-for-offline-data-integrity/)
