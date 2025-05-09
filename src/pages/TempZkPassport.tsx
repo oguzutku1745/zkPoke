@@ -18,7 +18,7 @@ export function TempZkPassportPage() {
   useEffect(() => {
     if (!zkpassportRef.current) {
       try {
-        zkpassportRef.current = new ZKPassport("zk-poke.vercel.app/temp-zkpassport");
+        zkpassportRef.current = new ZKPassport("zk-poke.vercel.app");
         console.log("ZKPassport SDK initialized");
       } catch (err) {
         console.error("Error initializing ZKPassport SDK:", err);
@@ -36,7 +36,7 @@ export function TempZkPassportPage() {
     
     try {
       if (!zkpassportRef.current) {
-        zkpassportRef.current = new ZKPassport("zk-poke.vercel.app/temp-zkpassport");
+        zkpassportRef.current = new ZKPassport("zk-poke.vercel.app");
       }
       
       // Create a verification request
