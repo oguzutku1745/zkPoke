@@ -2,7 +2,6 @@
 !.yarn/releases
 
 node_modules
-dist
 boxes/src/contracts/target
 boxes/src/contracts/log
 /test-results/
