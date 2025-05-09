@@ -30,41 +30,29 @@ This is the social layer that enables private communication:
 
 ## Technical Overview
 
-### Aztec's Private Notes
+### Aztec's Private Notes and Merkle Trees
 
-zkPoke leverages Aztec's private Note system as the foundation for privacy:
+zkPoke leverages Aztec's private Note system combined with Merkle trees to create a powerful privacy framework:
 
 - **Notes** are encrypted data structures that serve as the building blocks for private state in Aztec
 - Each user stores 8 private Notes on-chain (one for each credential type)
 - These Notes are fully encrypted and only visible to their owner
-- This allows us to store credential information without exposing it publicly
-
-### Why Binary Merkle Trees?
-
-We use binary Merkle trees for several critical reasons:
-
-1. **Efficient Verification**: Merkle trees enable validating the existence of a credential without revealing other credentials
-2. **Privacy Preservation**: Only a single hash (the root) needs to be shared to verify multiple credentials
-3. **Compact Representation**: The entire credential set is compressed into one root hash
-4. **Selective Disclosure**: Users can choose which credentials to prove without exposing others
-5. **Storage Efficiency**: While we store 8 Notes on-chain privately, only one public Merkle root is needed for verification
-6. **Cross-Chain Potential**: The Merkle root can be moved to other blockchains, enabling verification across multiple networks
-
-The tree structure itself is simple but powerful:
-
+- We organize these Notes into a binary Merkle tree for efficient verification
 - A Merkle tree is a binary tree where each leaf node represents a credential (stored as a Note)
 - Each non-leaf node is a hash of its two child nodes
-- The Merkle root (top hash) represents the entire tree
-- Verification requires only the path from a leaf to the root (logarithmic in size)
+- The Merkle root (top hash) represents the entire tree and enables efficient verification
+
+This combination provides efficient verification, privacy preservation, compact representation, and selective disclosure of credentials.
 
 ### Custom Merkle Tree Implementation
 
-We had to develop our own Merkle tree implementation for compatibility reasons:
+We developed a specialized implementation to ensure seamless compatibility:
 
+- Our custom Merkle tree implementation works in the frontend for creating and managing credential trees
+- The corresponding verification logic is implemented directly in the Aztec contract
 - Existing libraries like zk-kit use Poseidon hash which works with Noir but isn't compatible with Aztec Network
-- Our custom implementation uses Aztec's hash functions, ensuring compatibility with the Aztec ecosystem
-- This allows seamless integration with Aztec's privacy infrastructure
-- The result is a cryptographically secure Merkle tree that works natively with Aztec contracts
+- Our implementation uses Aztec's hash functions, ensuring end-to-end compatibility
+- This creates a complete system where trees generated in the frontend can be verified directly on-chain
 
 ### Credential Storage and Verification
 
@@ -81,12 +69,16 @@ Privacy is maintained throughout the credential handling process:
 
 Using Merkle trees with Aztec provides several key benefits:
 
+- **Efficient Verification**: Merkle trees enable validating the existence of a credential without revealing other credentials
+- **Privacy Preservation**: Only a single hash (the root) needs to be shared to verify multiple credentials
+- **Compact Representation**: The entire credential set is compressed into one root hash
+- **Selective Disclosure**: Users can choose which credentials to prove without exposing others
 - **Enhanced Privacy**: Users control exactly what information they share
 - **Gas Efficiency**: Storing only the root hash publicly significantly reduces on-chain costs
 - **Scalability**: Users can have many credentials without increasing public on-chain footprint
-- **Selective Disclosure**: Users can choose which credentials to expose in each interaction
 - **Proof Verification**: Claims can be cryptographically verified without revealing sensitive data
-- **Cross-Chain Verification**: The Merkle root structure enables verification across multiple blockchains
+- **Cross-Chain Potential**: The Merkle root structure enables verification across multiple blockchains
+- **Logarithmic Verification**: Verification requires only the path from a leaf to the root (logarithmic in size)
 
 ### User Registration Flow
 
