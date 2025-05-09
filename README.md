@@ -6,14 +6,16 @@ A privacy-preserving social "poking" application built on Aztec Network. zkPoke 
 
 zkPoke consists of two main components:
 
-### 1. Verification Layer
+### 1. Magna (Verification Layer)
 
-This is the foundation of the application that handles credential verification:
+Magna serves as a bridge between Web2's feudal data ownership model and Web3's user sovereignty:
 
 - Manages user credentials through secure zero-knowledge proofs
 - Verifies user identity while preserving privacy
 - Built on Aztec Network's privacy infrastructure
 - May be made available as a public utility in the future
+
+The name "Magna" draws inspiration from the Magna Carta - the historic document that first transferred power from monarchs to citizens. Similarly, Magna helps users reclaim ownership of their data and identity from centralized Web2 platforms.
 
 ### 2. zkPoke Messaging
 
@@ -33,18 +35,27 @@ This is the social layer that enables private communication:
 zkPoke leverages Aztec's private Note system as the foundation for privacy:
 
 - **Notes** are encrypted data structures that serve as the building blocks for private state in Aztec
-- Each Note contains credential information that is fully encrypted on-chain
-- Only the owner can decrypt and view their own Notes, ensuring complete privacy
+- Each user stores 8 private Notes on-chain (one for each credential type)
+- These Notes are fully encrypted and only visible to their owner
 - This allows us to store credential information without exposing it publicly
 
-### Binary Merkle Trees
+### Why Binary Merkle Trees?
 
-We use binary Merkle trees to efficiently handle credential verification:
+We use binary Merkle trees for several critical reasons:
+
+1. **Efficient Verification**: Merkle trees enable validating the existence of a credential without revealing other credentials
+2. **Privacy Preservation**: Only a single hash (the root) needs to be shared to verify multiple credentials
+3. **Compact Representation**: The entire credential set is compressed into one root hash
+4. **Selective Disclosure**: Users can choose which credentials to prove without exposing others
+5. **Storage Efficiency**: While we store 8 Notes on-chain privately, only one public Merkle root is needed for verification
+6. **Cross-Chain Potential**: The Merkle root can be moved to other blockchains, enabling verification across multiple networks
+
+The tree structure itself is simple but powerful:
 
 - A Merkle tree is a binary tree where each leaf node represents a credential (stored as a Note)
 - Each non-leaf node is a hash of its two child nodes
-- Only the Merkle root (a single hash value) needs to be stored on-chain
-- This structure allows proving credential ownership without revealing the credential details
+- The Merkle root (top hash) represents the entire tree
+- Verification requires only the path from a leaf to the root (logarithmic in size)
 
 ### Custom Merkle Tree Implementation
 
@@ -59,8 +70,9 @@ We had to develop our own Merkle tree implementation for compatibility reasons:
 
 Privacy is maintained throughout the credential handling process:
 
-- Credentials are encrypted and stored as Notes in the user's Merkle tree
-- The contract only stores the Merkle root, not the individual credentials
+- Credentials are encrypted and stored as 8 Notes in the user's private state
+- A Merkle tree is constructed from these credentials
+- The Merkle root is computed and stored for efficient verification
 - When a user wants to prove credential ownership, they generate a zero-knowledge proof
 - This proof verifies that a specific credential exists in their tree without revealing any details
 - The verification checks that the credential's hash is included in the tree with the known root
@@ -70,10 +82,11 @@ Privacy is maintained throughout the credential handling process:
 Using Merkle trees with Aztec provides several key benefits:
 
 - **Enhanced Privacy**: Users control exactly what information they share
-- **Gas Efficiency**: Storing only the root hash significantly reduces on-chain storage costs
-- **Scalability**: Users can have many credentials without increasing on-chain costs
+- **Gas Efficiency**: Storing only the root hash publicly significantly reduces on-chain costs
+- **Scalability**: Users can have many credentials without increasing public on-chain footprint
 - **Selective Disclosure**: Users can choose which credentials to expose in each interaction
 - **Proof Verification**: Claims can be cryptographically verified without revealing sensitive data
+- **Cross-Chain Verification**: The Merkle root structure enables verification across multiple blockchains
 
 ### User Registration Flow
 
@@ -82,9 +95,10 @@ zkPoke's registration process preserves privacy while establishing identity:
 1. User connects their wallet to the application
 2. User selects which credentials they want to add (e.g., age verification, university)
 3. Credentials are converted to Notes and added to a new Merkle tree
-4. The Merkle root is computed and stored in the contract
-5. A private registration is completed with the user's identity secured
-6. Only the user can access and prove ownership of their credentials
+4. The 8 credential Notes are stored privately on-chain
+5. The Merkle root is computed and stored for verification
+6. A private registration is completed with the user's identity secured
+7. Only the user can access and prove ownership of their credentials
 
 ## Getting Started
 
