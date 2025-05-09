@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { SignalsDashboard } from './pages/signalsDashboard';
 import { SendSignalPage } from './pages/sendSignal';
 import { ProfilePage } from './pages/profile';
+import { TempZkPassportPage } from './pages/TempZkPassport';
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
           {/* Public pages */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/test" element={<TailwindTest />} />
+          <Route path="/temp-zkpassport" element={<TempZkPassportPage />} />
           
           {/* Protected setup pages */}
           <Route path="/select-credentials" element={
