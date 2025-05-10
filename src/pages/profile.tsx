@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
 import { Header, Footer, Button, Alert, BottomNavigation } from '../components';
 import { useContractContext } from '../context/ContractContext';
+import { deployerEnv } from '../config';
+
+async function getWalletAddress() {
+  const wallet = await deployerEnv.getWallet();
+  return wallet;
+}
 
 export function ProfilePage() {
   const { contract } = useContractContext();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
+  const wallet = getWalletAddress();
+  console.log(wallet);
   // Mock user data - will be replaced with contract data
   const [profile] = useState({
-    username: 'zkpoker123',
-    walletAddress: '0x1234...5678',
-    joinDate: 'June 2023',
-    credentialsCount: 4,
-    signalsSent: 12,
-    signalsReceived: 8,
+    username: '@akinspur',
+    walletAddress: '0x154307....a705344',
+    joinDate: 'May 2025',
+    credentialsCount: 2,
+    signalsSent: 0,
+    signalsReceived: 0,
   });
 
   const handleDisconnect = () => {
