@@ -188,7 +188,7 @@ export function LandingPage() {
           <button
             onClick={createAccount}
             disabled={isCreatingAccount || isCheckingProofs}
-            className="w-full py-3 px-4 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200"
+            className="w-full py-3 px-4 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 mb-4"
           >
             {isCreatingAccount ? (
               <div className="flex items-center justify-center">
@@ -201,7 +201,19 @@ export function LandingPage() {
                  step === 3 ? "Building verification tree..." : 
                  "Creating account..."}
               </div>
-            ) : "Create New Account"}
+            ) : "Create Proofs on Magna"}
+          </button>
+          
+          <button
+            onClick={() => navigate('/zkpoke-register')}
+            className="w-full py-3 px-4 border border-indigo-300 rounded-md shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200"
+          >
+            <div className="flex items-center justify-center">
+              <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              ZkPoke Registration
+            </div>
           </button>
           
           {error && (

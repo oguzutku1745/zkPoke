@@ -166,13 +166,13 @@ export function SelectCredentialsPage() {
     try {
       // Initialize the ZKPassport SDK with devMode enabled
       if (!zkpassportRef.current) {
-        zkpassportRef.current = new ZKPassport("https://aztec.network/");
+        zkpassportRef.current = new ZKPassport("localhost:5173");
       }
       
       // Create a verification request
       const query = await zkpassportRef.current.request({
         name: "zkPoke",
-        logo: "https://aztec.network/logo.png", // Replace with your actual logo URL
+        logo: "http://localhost:5173/logo.png", // Replace with your actual logo URL
         purpose: "Age verification for zkPoke",
         scope: "zkpoke-verification", // Optional scope for unique identifier
         devMode: true, // Enable dev mode for testing
