@@ -9,13 +9,13 @@ import { poseidon2 } from "poseidon-lite";
 
 // __dirname benzeri bir değişken yarat
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const _dirname = dirname(_filename);
 
 // Noir ve Barretenberg
 import { Noir } from "@noir-lang/noir_js";
 import { UltraHonkBackend } from "@aztec/bb.js";
 
-// Helper: .eml’den circuit input’larını üretir
+// Helper: .eml'den circuit input'larını üretir
 import { generateCircuitInputs } from "./helpers.js";
 
 async function loadCircuit() {
@@ -31,9 +31,23 @@ async function loadCircuit() {
 
 async function main() {
   const app = express();
-  app.use(bodyParser.json({ limit: "10mb" })); // büyük .eml’ler için izin ver
+  app.use(bodyParser.json({ limit: "10mb" })); // büyük .eml'ler için izin ver
 
-  // Circuit + backend’i yükle
+  // Add CORS middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    next();
+  });
+
+  // Circuit + backend'i yükle
   const circuit = await loadCircuit();
   const noir = new Noir(circuit);
   const backend = new UltraHonkBackend(circuit.bytecode);
@@ -41,7 +55,7 @@ async function main() {
   /**
    * Beklenen POST gövdesi:
    * {
-   *   emlBase64: "<.eml dosyasının base64 string’i>",
+   *   emlBase64: "<.eml dosyasının base64 string'i>",
    *   expectedEmail: "yildirim.mesude11@gmail.com",
    *   expectedUsername: "denemedeneme581"
    * }
@@ -51,7 +65,7 @@ async function main() {
       const { emlBase64, expectedEmail, expectedUsername } = req.body;
       const emlBuffer = Buffer.from(emlBase64, "base64");
 
-      // 1) Circuit input’larını üret
+      // 1) Circuit input'larını üret
       const inputs = await generateCircuitInputs(
         emlBuffer,
         expectedEmail,
@@ -97,8 +111,11 @@ async function main() {
 
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () =>
-    console.log(`🛰️  Backend çalışıyor: http://localhost:${PORT}`)
+    console.log("🛰  Backend is working on : http://localhost:${PORT}")
   );
 }
 
 main().catch(console.error);
+//comment
+//comment2
+//comments
