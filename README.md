@@ -127,7 +127,8 @@ To run the zkPoke application locally:
 4. Connect to the Aztec testnet in your browser
 
 ## Learn More
-
+Private register deployment TX: 0x04b815870422f8f02f32fc79dc1709fe14938ae5d5738fcde18ac16555c34eca
+Private register contract: 0x1a3cf4d787ac79f6c388b88ddc36a337556901fd77d63d126adcc98b10c0e9de
 For more information about the technologies used:
 
 - [Aztec Network](https://aztec.network/)
