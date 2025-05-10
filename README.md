@@ -4,7 +4,7 @@ A privacy-preserving social "poking" application built on Aztec Network. zkPoke 
 
 ## Application Overview
 
-zkPoke consists of two main components:
+zkPoke consists of three main components:
 
 ### 1. Magna (Verification Layer)
 
@@ -17,16 +17,17 @@ Magna serves as a bridge between Web2's feudal data ownership model and Web3's u
 
 The name "Magna" draws inspiration from the Magna Carta - the historic document that first transferred power from monarchs to citizens. Similarly, Magna helps users reclaim ownership of their data and identity from centralized Web2 platforms.
 
-### 2. zkPoke Messaging
 
-This is the social layer that enables private communication:
+### 2. zkPoke Smart Contract
 
-- Users can "poke" others with a private message
-- Senders can selectively disclose personal information (age, university, etc.)
-- Senders don't know if the recipient is on the platform
-- Messages are stored as encrypted Notes with only a commitment hash on-chain
-- Recipients can view pokes when they access the platform
-- Recipients can respond by proving ownership and indicating interest (interested or not interested)
+This is the on-chain component that handles the secure storage and management of user data and interactions:
+
+- **User Registration**: Users can register with their Instagram ID, associating their wallet address with their social identity
+- **Profile Information**: Users can privately store their full name, partial name, and nationality on-chain
+- **Private Poking**: Users can send pokes to others with selective disclosure of personal details
+- **Commitment System**: Enables privacy-preserving response to pokes through a commitment scheme
+- **Note-Based Storage**: Uses Aztec's private note system to securely store user information and pokes
+- **Intention Tracking**: Records user intentions (interested/not interested) without revealing the content of messages
 
 ## Technical Overview
 
@@ -65,6 +66,17 @@ Privacy is maintained throughout the credential handling process:
 - This proof verifies that a specific credential exists in their tree without revealing any details
 - The verification checks that the credential's hash is included in the tree with the known root
 
+### zkPoke Contract Key Features
+
+The zkPoke contract provides several privacy-preserving functionalities:
+
+- **Private Data Storage**: User information (names, nationality) is stored as encrypted notes. These notes are derived from zkPassport's disclosure statement.
+- **Selective Disclosure**: Users can choose which personal details to share when poking others using a bit mask. To preven manipulation, those disclosure's are being made from 
+- **Commitment-Based Responses**: Recipients can respond to pokes without revealing the content of messages
+- **Intention Tracking**: Records if a user is interested or not interested in a poke
+- **Note Retrieval**: Allows users to view received pokes with pagination
+- **Hash-Based Identification**: Uses hashed Instagram IDs to find users on the platform
+
 ### Advantages of Our Approach
 
 Using Merkle trees with Aztec provides several key benefits:
@@ -85,12 +97,25 @@ Using Merkle trees with Aztec provides several key benefits:
 zkPoke's registration process preserves privacy while establishing identity:
 
 1. User connects their wallet to the application
-2. User selects which credentials they want to add (e.g., age verification, university)
-3. Credentials are converted to Notes and added to a new Merkle tree
-4. The 8 credential Notes are stored privately on-chain
-5. The Merkle root is computed and stored for verification
-6. A private registration is completed with the user's identity secured
-7. Only the user can access and prove ownership of their credentials
+2. User registers with their Instagram ID, creating a public mapping of their ID hash to wallet address
+3. User provides additional information (full name, partial name, nationality) which is stored privately
+4. Credentials are converted to Notes and added to a new Merkle tree
+5. The 8 credential Notes are stored privately on-chain
+6. The Merkle root is computed and stored for verification
+7. A private registration is completed with the user's identity secured
+8. Only the user can access and prove ownership of their credentials
+
+### Poking Flow
+
+The private messaging system works as follows:
+
+1. Sender selects a recipient by their Instagram ID
+2. Sender chooses which personal details to share (using a bit mask)
+3. A private PokeNote is created containing the selected information
+4. The note is encrypted and stored in the recipient's private storage
+5. The recipient can view all received pokes when they access the platform
+6. The recipient can respond with intention (interested/not interested)
+7. The response is recorded through a commitment system for privacy
 
 ## Getting Started
 
