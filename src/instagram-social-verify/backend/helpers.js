@@ -11,7 +11,7 @@ function simpleHash(data) {
 }
 
 function extractUsernameFromEmail(emailContent) {
-  const usernameMatch = emailContent.match(/Merhaba ([^,]+),/);
+  const usernameMatch = emailContent.match(/Hi ([^,]+),/);
   if (usernameMatch) return usernameMatch[1];
   const footerMatch = emailContent.match(/adresine ([^\s]+) i.in g.nderilmi.tir/);
   if (footerMatch) return footerMatch[1];
@@ -24,7 +24,7 @@ function extractUsernameFromEmail(emailContent) {
  * expectedUsername: string
  */
 export async function generateCircuitInputs(emlBuffer, expectedEmail, expectedUsername) {
-  // 1) .eml’den temel inputs’u al
+  // 1) .eml'den temel inputs'u al
   const base = await generateEmailVerifierInputs(
     emlBuffer,
     { maxHeadersLength: 576, maxBodyLength: 16384, extractFrom: true, extractTo: true }

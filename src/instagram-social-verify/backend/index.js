@@ -9,7 +9,7 @@ import { poseidon2 } from "poseidon-lite";
 
 // __dirname benzeri bir değişken yarat
 const __filename = fileURLToPath(import.meta.url);
-const _dirname = dirname(_filename);
+const __dirname = dirname(__filename);
 
 // Noir ve Barretenberg
 import { Noir } from "@noir-lang/noir_js";
