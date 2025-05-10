@@ -13,4 +13,6 @@ export { Footer } from './layout/Footer';
 export { BottomNavigation } from './navigation/BottomNavigation';
 
 // Route Components
-export { ProtectedRoute } from './ProtectedRoute'; 
+export { ProtectedRoute } from './ProtectedRoute';
+
+export * from './WalletSelector'; 

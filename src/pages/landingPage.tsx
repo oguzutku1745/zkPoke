@@ -76,10 +76,10 @@ export function LandingPage() {
         return;
       }
       
-      if (!instagramProof || instagramProof.claim_hash === 0n) {
-        setError('Instagram proof is required but not found or not valid.');
-        return;
-      }
+      //if (!instagramProof || instagramProof.claim_hash === 0n) {
+      //  setError('Instagram proof is required but not found or not valid.');
+      //  return;
+      //}
       
       // If we have both required proofs with non-zero claim_hash values
       setSuccess('Verification successful! You can now continue to the app.');

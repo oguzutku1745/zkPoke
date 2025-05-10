@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Fr, AztecAddress } from '@aztec/aztec.js';
 import { toast } from 'react-toastify';
-import { deployerEnv } from '../config';
+import { deployerEnv, getSelectedUser, userWallets } from '../config';
 import { poseidon2Hash } from '@aztec/foundation/crypto';
 import { readFieldCompressedString, stringToField } from './useZkPoke';
 
@@ -24,13 +24,19 @@ export interface PokeNote {
   receiverInstagramId?: string; // Plain text Instagram ID
 }
 
-// Helper to convert bigint to Fr (like in the test script)
-const F = (x: bigint | number | string) => new Fr(BigInt(x));
+// Short alias for Fr constructor
+const F = (value: bigint | number) => new Fr(value);
+const addrToBigInt = (addr: AztecAddress): bigint =>
+  addr.toField().toBigInt(); 
 
 export function useSignals() {
   const [wait, setWait] = useState(false);
   const [sentSignals, setSentSignals] = useState<PokeNote[]>([]);
   const [receivedSignals, setReceivedSignals] = useState<PokeNote[]>([]);
+
+  // Get the current selected user
+  const selectedUser = getSelectedUser();
+  const walletIndex = userWallets[selectedUser as keyof typeof userWallets]?.index || 0;
 
   // Convert PokeNote object to a readable format
   const pokeNoteToReadable = (note: PokeNote) => {
@@ -51,7 +57,6 @@ export function useSignals() {
     receiverInstagramId: string,
     receiverAddress: AztecAddress,
     exposureOptions: { [key: string]: boolean },
-    message: string,
     contract: any
   ) => {
     if (!contract) {
@@ -70,7 +75,7 @@ export function useSignals() {
     setWait(true);
     
     try {
-      const wallet = await deployerEnv.getWallet();
+      const wallet = await deployerEnv.getWallet(walletIndex);
       const userAddress = await wallet.getAddress();
       
       // Get current timestamp
@@ -78,7 +83,7 @@ export function useSignals() {
       
       // Send the poke using the contract
       const result = await toast.promise(
-        contract.methods
+        contract.withWallet(wallet).methods
           .poke(receiverInstagramId, receiverAddress, mask)
           .send()
           .wait(),
@@ -93,8 +98,8 @@ export function useSignals() {
       
       // Create a signal object to store in localStorage
       const sentSignal: PokeNote = {
-        owner: receiverAddress.toBigInt(),
-        sender: userAddress.toBigInt(),
+        owner: addrToBigInt(receiverAddress),
+        sender: addrToBigInt(userAddress),
         instagram_id_receiver: { value: stringToField(receiverInstagramId).toBigInt() },
         instagram_id_sender: { value: 0n }, // We don't know the sender's Instagram ID in this context
         full_name: { value: 0n },
@@ -102,7 +107,6 @@ export function useSignals() {
         nationality: { value: 0n },
         randomness: 0n,
         timestamp,
-        message,
         exposureMask: mask,
       };
       
@@ -137,12 +141,12 @@ export function useSignals() {
     setWait(true);
     
     try {
-      const wallet = await deployerEnv.getWallet();
+      const wallet = await deployerEnv.getWallet(walletIndex);
       const userAddress = await wallet.getAddress();
       
       const page = 0; // First page of results
       
-      // Get pokes from the contract
+      // Get pokes from the contract using the updated approach
       const result = await contract.methods.get_pokes(userAddress, page).simulate();
       
       console.log('Received signals:', result);
@@ -196,29 +200,43 @@ export function useSignals() {
     setWait(true);
     
     try {
-      const wallet = await deployerEnv.getWallet();
-      
-      // Calculate the commit hash exactly as in the test script
-      const fields = [
-        F(note.owner),
-        F(note.sender),
-        F(note.instagram_id_receiver.value),
-        F(note.instagram_id_sender.value),
-        F(note.full_name.value),
-        F(note.partial_name.value),
-        F(note.nationality.value),
-        F(note.randomness)
-      ];
-      
-      // Match the test script's approach for computing the commit hash
-      const commitHash = new Fr(await poseidon2Hash(fields)).toBigInt();
-      
-      // Create AztecAddress from sender bigint using AztecAddress constructor
+      const wallet = await deployerEnv.getWallet(walletIndex);
+      const userAddress = await wallet.getAddress();
       const senderAddress = AztecAddress.fromBigInt(note.sender);
       
-      // Call respond_poke
+      // Use the trial function to get the poke note with the correct format
+      const pokeNotes = await contract.methods.trial(userAddress, senderAddress).simulate();
+      console.log("Poke notes from trial:", pokeNotes);
+      
+      // Get the first note
+      const n = pokeNotes.storage[0];
+      
+      if (!n || n.owner === 0n) {
+        throw new Error("No valid poke note found");
+      }
+      
+      console.log("Selected note:", n);
+      
+      // Build the exact field array as specified
+      const fields = [
+        F(n.owner),
+        F(n.sender),
+        F(n.instagram_id_receiver.value),
+        F(n.instagram_id_sender.value),
+        F(n.full_name.value),
+        F(n.partial_name.value),
+        F(n.nationality.value),
+        F(n.randomness),
+      ];
+      
+      // Calculate the commit hash
+      const commitHash = new Fr(await poseidon2Hash(fields)).toBigInt();
+      
+      console.log("Calculated commit hash:", commitHash);
+      
+      // Call respond_poke with that hash
       const result = await toast.promise(
-        contract.methods
+        contract.withWallet(wallet).methods
           .respond_poke(commitHash, intention, senderAddress)
           .send()
           .wait(),
@@ -230,7 +248,7 @@ export function useSignals() {
       );
       
       // Update the intention
-      await contract.methods.update_commitment(commitHash, intention).send().wait();
+      await contract.withWallet(wallet).methods.update_commitment(commitHash, intention).send().wait();
       
       // Update the note in state
       const updatedSignals = receivedSignals.map(signal => 
@@ -259,6 +277,7 @@ export function useSignals() {
     getReceivedSignals,
     getSentSignals,
     respondToSignal,
-    pokeNoteToReadable
+    pokeNoteToReadable,
+    selectedUser,
   };
 } 

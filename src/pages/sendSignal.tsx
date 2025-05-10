@@ -4,6 +4,7 @@ import { Header, Footer, Input, Button, Alert, BottomNavigation } from '../compo
 import { useSignals } from '../hooks/useSignals';
 import { useZkPoke } from '../hooks/useZkPoke';
 import { AztecAddress } from '@aztec/aztec.js';
+import { userWallets } from '../config';
 
 // Exposure options
 interface ExposureOption {
@@ -12,40 +13,44 @@ interface ExposureOption {
   selected: boolean;
 }
 
-// Predefined user information
+// Predefined test users
 const PREDEFINED_USERS = {
   alice: {
     instagram: 'alice.eth',
     fullName: 'Alice Wonderland',
     partialName: 'Alice W.',
-    nationality: 'TR'
+    nationality: 'TR',
   },
   akin: {
     instagram: '@akinspur',
-    fullName: 'Akın Semih Pür',
-    partialName: 'Akin Semih P.',
-    nationality: 'TR'
-  }
+    fullName: 'Akin Semih Pur',
+    partialName: 'Akin S.',
+    nationality: 'TR',
+  },
 };
 
 export function SendSignalPage() {
   const navigate = useNavigate();
+  const { contract, wait: contractWait, deploy, register, registerInfo, getAddressByInstagram, selectedUser, resetContractData, isUserRegistered } = useZkPoke();
   const { sendSignal, wait: signalWait } = useSignals();
-  const { contract, deploy, register, registerInfo, getAddressByInstagram, wait: contractWait } = useZkPoke();
   
-  // State for username input
+  // Form state
   const [username, setUsername] = useState('');
   const [selectedUsername, setSelectedUsername] = useState('');
   const [userAddress, setUserAddress] = useState<AztecAddress | null>(null);
-  const [messageContent, setMessageContent] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  
+  // UI state
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [userRegistered, setUserRegistered] = useState<'alice' | 'akin' | null>(null);
+  const [userRegistered, setUserRegistered] = useState<string | null>(null);
   
-  // Exposure options
+  // Get current user information
+  const currentUser = userWallets[selectedUser as keyof typeof userWallets];
+  
+  // List of exposure options
   const [exposureOptions, setExposureOptions] = useState<ExposureOption[]>([
     { id: 'instagramId', label: 'Instagram ID', selected: false },
     { id: 'fullName', label: 'Full Name', selected: false },
@@ -62,6 +67,38 @@ export function SendSignalPage() {
       setError(''); // Clear any contract initialization errors
     }
   }, [contract]);
+
+  // Effect to check user registration status when component mounts
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if (!contract) return;
+      
+      try {
+        const user = selectedUser as 'alice' | 'akin';
+        const userInfo = PREDEFINED_USERS[user];
+        
+        // First check localStorage for registration status to minimize contract interactions
+        if (userRegistered) {
+          return;
+        }
+        
+        console.log(`Checking if ${user} (${userInfo.instagram}) is registered...`);
+        const alreadyRegistered = await isUserRegistered(userInfo.instagram, contract);
+        console.log(`Registration check result for ${user}: ${alreadyRegistered}`);
+        
+        if (alreadyRegistered) {
+          console.log(`User ${user} is already registered according to contract check`);
+          setUserRegistered(user);
+        }
+      } catch (error) {
+        console.error('Error checking registration status:', error);
+        // Even if there's an error, we don't want to show it to the user
+        // Just silently fail and let them try to register manually
+      }
+    };
+    
+    checkRegistrationStatus();
+  }, [contract, selectedUser, isUserRegistered, userRegistered]);
 
   // Handle contract deployment
   const handleDeployContract = async () => {
@@ -85,6 +122,15 @@ export function SendSignalPage() {
     }
   };
 
+  // Handle resetting contract data
+  const handleResetContract = () => {
+    if (window.confirm('Are you sure you want to reset all contract data? This will clear your registration and require redeploying the contract.')) {
+      resetContractData();
+      setUserRegistered(null);
+      navigate('/'); // Navigate to home page
+    }
+  };
+
   // Handle user registration
   const handleRegisterUser = async (user: 'alice' | 'akin') => {
     if (!contract) {
@@ -99,10 +145,38 @@ export function SendSignalPage() {
     try {
       const userInfo = PREDEFINED_USERS[user];
       
+      // First, check if the user is already registered
+      console.log(`Checking if ${user} (${userInfo.instagram}) is registered...`);
+      const alreadyRegistered = await isUserRegistered(userInfo.instagram, contract);
+      console.log(`Registration check result for ${user}: ${alreadyRegistered}`);
+      
+      if (alreadyRegistered) {
+        console.log(`User ${user} is already registered according to contract check`);
+        setSuccess(`User ${user} is already registered`);
+        setUserRegistered(user);
+        return;
+      }
+      
       // First, register the public Instagram ID
-      await register(userInfo.instagram, contract);
+      setSuccess(`Registering ${user}...`);
+      try {
+        await register(userInfo.instagram, contract);
+      } catch (registerError: any) {
+        if (registerError.message && (
+          registerError.message.includes('already initialized') || 
+          registerError.message.includes('PublicImmutable already initialized')
+        )) {
+          // The user is already registered, continue to register user info
+          console.log(`User ${user} is already registered, continuing to register info...`);
+          setUserRegistered(user);
+        } else {
+          // There was an actual error during registration
+          throw registerError;
+        }
+      }
       
       // Then register the private user information
+      setSuccess(`Registering ${user}'s information...`);
       await registerInfo(
         userInfo.instagram,
         userInfo.fullName,
@@ -113,9 +187,23 @@ export function SendSignalPage() {
       
       setSuccess(`Successfully registered as ${user === 'alice' ? 'Alice' : 'Akın'}!`);
       setUserRegistered(user);
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error registering as ${user}:`, err);
-      setError(`Failed to register as ${user}. Please try again.`);
+      
+      // Handle specific error messages
+      if (err.message) {
+        if (err.message.includes('already initialized') || 
+            err.message.includes('PublicImmutable already initialized')) {
+          setSuccess(`User ${user} is already registered`);
+          setUserRegistered(user);
+        } else if (err.message.includes('Cannot satisfy constraint')) {
+          setError(`Failed to register as ${user}: Permission denied. Please check wallet permissions.`);
+        } else {
+          setError(`Failed to register as ${user}: ${err.message.slice(0, 100)}`);
+        }
+      } else {
+        setError(`Failed to register as ${user}. Please try again.`);
+      }
     } finally {
       setIsRegistering(false);
     }
@@ -177,12 +265,6 @@ export function SendSignalPage() {
         return;
       }
       
-      if (!messageContent.trim()) {
-        setError('Please enter a message');
-        setIsSubmitting(false);
-        return;
-      }
-      
       if (!contract) {
         setError('Contract not initialized. Please deploy the contract first.');
         setIsSubmitting(false);
@@ -200,7 +282,6 @@ export function SendSignalPage() {
         selectedUsername,
         userAddress,
         selectedOptionsMap,
-        messageContent,
         contract
       );
       
@@ -231,6 +312,36 @@ export function SendSignalPage() {
       
       <main className="flex-grow">
         <div className="max-w-lg mx-auto px-4 py-8 sm:px-6">
+          {/* User info banner */}
+          <div className="bg-indigo-50 rounded-lg p-4 mb-6 border border-indigo-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-indigo-800">Logged in as {currentUser?.name}</h3>
+                  <p className="text-sm text-indigo-700 mt-1">Instagram: {currentUser?.instagram}</p>
+                </div>
+              </div>
+              {contract && (
+                <button
+                  onClick={handleResetContract}
+                  className="text-xs text-red-500 hover:text-red-700 underline"
+                >
+                  Reset Contract
+                </button>
+              )}
+            </div>
+            {contract && (
+              <div className="mt-2 pt-2 border-t border-indigo-100 text-xs text-indigo-700">
+                <p>Contract at: {contract.address.toString()}</p>
+              </div>
+            )}
+          </div>
+          
           {/* Contract status banner */}
           {!contract && (
             <div className="mb-6">
@@ -269,32 +380,22 @@ export function SendSignalPage() {
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800">Register a user to continue</h3>
+                    <h3 className="text-sm font-medium text-blue-800">Registration required</h3>
                     <div className="mt-2 text-sm text-blue-700">
-                      <p>Choose one of the following users to register with:</p>
+                      <p>You need to register your {selectedUser === 'alice' ? 'Alice' : 'Akın'} profile first.</p>
                     </div>
-                    <div className="mt-3 flex space-x-3">
+                    <div className="mt-3">
                       <Button 
-                        onClick={() => handleRegisterUser('alice')}
+                        onClick={() => handleRegisterUser(selectedUser as 'alice' | 'akin')}
                         size="small"
-                        isLoading={isRegistering && userRegistered === 'alice'}
+                        isLoading={isRegistering}
                         disabled={isRegistering}
-                        variant="primary"
                       >
-                        Register as Alice
-                      </Button>
-                      <Button 
-                        onClick={() => handleRegisterUser('akin')}
-                        size="small"
-                        isLoading={isRegistering && userRegistered === 'akin'}
-                        disabled={isRegistering}
-                        variant="secondary"
-                      >
-                        Register as Akın
+                        Register as {selectedUser === 'alice' ? 'Alice' : 'Akın'}
                       </Button>
                     </div>
                   </div>
@@ -328,81 +429,50 @@ export function SendSignalPage() {
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                   Instagram Username
                 </label>
-                
-                {!selectedUsername ? (
-                  <div className="flex space-x-2">
-                    <Input
-                      id="username"
-                      name="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter Instagram ID"
-                      fullWidth
-                    />
-                    <Button 
-                      onClick={handleSearchUsername}
-                      size="medium"
-                      isLoading={contractWait}
-                      disabled={contractWait || !username.trim() || !contract || !userRegistered}
-                    >
-                      Select
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                    <span className="text-sm font-medium">{selectedUsername}</span>
-                    <Button 
-                      variant="text" 
-                      size="small" 
-                      onClick={() => {
-                        setSelectedUsername('');
-                        setUserAddress(null);
-                      }}
-                      disabled={isLoading}
-                    >
-                      Change
-                    </Button>
+                <div className="flex">
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="e.g. @username"
+                    className="flex-grow"
+                    disabled={!contract || !userRegistered}
+                  />
+                  <Button
+                    onClick={handleSearchUsername}
+                    className="ml-2"
+                    size="medium"
+                    disabled={!contract || !userRegistered || !username.trim() || isLoading}
+                    isLoading={isLoading}
+                  >
+                    Find
+                  </Button>
+                </div>
+                {selectedUsername && userAddress && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200 text-sm text-gray-700">
+                    Selected user: <span className="font-medium">{selectedUsername}</span>
                   </div>
                 )}
               </div>
               
-              {/* Message input */}
-              <div className="mb-6">
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Message
-                </label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  value={messageContent}
-                  onChange={(e) => setMessageContent(e.target.value)}
-                  placeholder="Write your introduction..."
-                  disabled={isLoading || !contract || !userRegistered}
-                ></textarea>
-              </div>
-              
               {/* Exposure options */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Exposure Options
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Choose what to reveal about yourself
                 </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  Select which information you want to reveal to this user
-                </p>
-                
                 <div className="space-y-2">
                   {exposureOptions.map((option) => (
                     <div key={option.id} className="flex items-center">
                       <input
                         id={option.id}
                         type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                         checked={option.selected}
                         onChange={() => toggleExposureOption(option.id)}
-                        disabled={isLoading || !contract || !userRegistered}
+                        disabled={!contract || !userRegistered || !selectedUsername}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
-                      <label htmlFor={option.id} className="ml-2 block text-sm text-gray-700">
+                      <label htmlFor={option.id} className="ml-2 block text-sm text-gray-900">
                         {option.label}
                       </label>
                     </div>
@@ -411,11 +481,13 @@ export function SendSignalPage() {
               </div>
               
               {/* Submit button */}
-              <div className="flex justify-end">
+              <div className="pt-2">
                 <Button
                   onClick={handleSubmitSignal}
-                  isLoading={isLoading}
-                  disabled={isLoading || !selectedUsername || !messageContent.trim() || !contract || !userRegistered}
+                  size="large"
+                  disabled={!contract || !userRegistered || !selectedUsername || !userAddress || isLoading}
+                  isLoading={isSubmitting}
+                  className="w-full"
                 >
                   Send Signal
                 </Button>
@@ -424,11 +496,6 @@ export function SendSignalPage() {
           </div>
         </div>
       </main>
-      
-      {/* Add bottom padding to prevent content from being hidden behind bottom navigation */}
-      <div className="pb-16">
-        {/* Spacer for bottom navigation */}
-      </div>
       
       <BottomNavigation />
       <Footer />

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header, Footer, BottomNavigation, Button, Alert } from '../components';
 import { useSignals, PokeNote } from '../hooks/useSignals';
 import { useZkPoke } from '../hooks/useZkPoke';
 import { readFieldCompressedString } from '../hooks/useZkPoke';
+import { userWallets } from '../config';
 
 export function SignalsDashboard() {
-  const { contract, wait: contractWait } = useZkPoke();
+  const navigate = useNavigate();
+  const { contract, wait: contractWait, resetContractData } = useZkPoke();
   const { 
     sentSignals, 
     receivedSignals, 
@@ -13,13 +16,17 @@ export function SignalsDashboard() {
     getSentSignals, 
     respondToSignal,
     pokeNoteToReadable,
-    wait: signalsWait 
+    wait: signalsWait,
+    selectedUser
   } = useSignals();
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger refresh
+  
+  // Get current user information
+  const currentUser = userWallets[selectedUser as keyof typeof userWallets];
   
   // Fetch signals on component mount
   useEffect(() => {
@@ -41,7 +48,7 @@ export function SignalsDashboard() {
     };
     
     fetchSignals();
-  }, [contract, refreshKey]);
+  }, [contract, refreshKey, selectedUser]);
   
   // Handle responding to a signal
   const handleRespondToSignal = async (note: PokeNote, intention: number) => {
@@ -66,6 +73,14 @@ export function SignalsDashboard() {
       setError('Failed to respond to signal. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Handle resetting contract data
+  const handleResetContract = () => {
+    if (window.confirm('Are you sure you want to reset all contract data? This will clear your registration and require redeploying the contract.')) {
+      resetContractData();
+      navigate('/'); // Navigate to home page
     }
   };
   
@@ -140,6 +155,64 @@ export function SignalsDashboard() {
       
       <main className="flex-grow">
         <div className="max-w-2xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          {/* User info banner */}
+          <div className="bg-indigo-50 rounded-lg p-4 mb-6 border border-indigo-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-indigo-800">Logged in as {currentUser?.name}</h3>
+                  <p className="text-sm text-indigo-700 mt-1">Instagram: {currentUser?.instagram}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                {!contract ? (
+                  <Button
+                    onClick={() => navigate('/send-signal')}
+                    size="small"
+                    variant="primary"
+                  >
+                    Deploy Contract
+                  </Button>
+                ) : (
+                  <button
+                    onClick={handleResetContract}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    Reset Contract
+                  </button>
+                )}
+              </div>
+            </div>
+            {contract && (
+              <div className="mt-2 pt-2 border-t border-indigo-100 text-xs text-indigo-700">
+                <p>Contract at: {contract.address.toString()}</p>
+              </div>
+            )}
+          </div>
+          
+          {!contract && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">Contract not initialized</h3>
+                  <p className="text-sm text-yellow-700">
+                    You need to deploy the ZkPoke contract first. Please go to the Send Signal page to deploy.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Display error and success messages */}
           {error && <Alert type="error" message={error} className="mb-4" />}
           {success && <Alert type="success" message={success} className="mb-4" />}
@@ -150,7 +223,7 @@ export function SignalsDashboard() {
               onClick={() => setRefreshKey(prev => prev + 1)}
               size="small"
               isLoading={isLoading || contractWait || signalsWait}
-              disabled={isLoading || contractWait || signalsWait}
+              disabled={isLoading || contractWait || signalsWait || !contract}
               variant="outline"
             >
               <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -242,7 +315,7 @@ export function SignalsDashboard() {
                     </div>
                     
                     {/* Response buttons if not already replied */}
-                    {!signal.replied && (
+                    {!signal.replied && contract && (
                       <div className="flex space-x-2 mt-2">
                         <Button
                           size="small"
@@ -281,7 +354,9 @@ export function SignalsDashboard() {
                 ))
               ) : (
                 <li className="px-6 py-8 text-center text-gray-500">
-                  No signals received yet. When someone pokes you, it will appear here!
+                  {contract ? 
+                    'No signals received yet. When someone pokes you, it will appear here!' : 
+                    'Deploy the contract first to receive signals.'}
                 </li>
               )}
             </ul>
