@@ -1,0 +1,19 @@
+
+[package]
+name             = "instagram_example"
+type             = "bin"                      # <-- DÜZGÜN
+authors          = ["Adınız"]
+compiler_version = "^1.0.0"
+license          = "MIT"
+
+[dependencies]
+instagram_sv = { path = "../../lib" }
+zkemail = { tag = "v0.4.2", git = "https://github.com/zkemail/zkemail.nr", directory = "lib" }
+
+noir_bignum  = { tag = "v0.6.0", git = "https://github.com/noir-lang/noir-bignum" }
+
+[workspace]
+compile_tests = false
+[tool.nargo]
+# Bu seçenekler yalnızca paket derlenirken geçerli:
+compile_tests = false      # bağımlılıkların tests klasörlerini atla
