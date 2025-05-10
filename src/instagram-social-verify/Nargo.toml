@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "lib",
+  "examples/instagram_example"
+]
+compile_tests = false

@@ -1,0 +1,5 @@
+packages:
+  - .
+onlyBuiltDependencies:
+  - blake-hash
+  - esbuild

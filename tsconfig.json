@@ -22,6 +22,7 @@
   },
   "include": [
     "src/**/*.ts*",
+    "src/instagram-social-verify/target/*.json",
     "tests/**/*.ts",
     "src/contracts/target/*.json",
     "src/zkpoke/target/*.json",

@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aztec/bb.js": "^0.86.0",
+    "@noir-lang/backend_barretenberg": "^0.36.0",
+    "@noir-lang/barretenberg": "^2.22.0",
+    "@noir-lang/noir_js": "^1.0.0-beta.5",
+    "@zk-email/zkemail-nr": "^1.3.1",
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "msgpackr": "^1.11.2",
+    "poseidon-lite": "^0.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
