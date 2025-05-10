@@ -62,6 +62,13 @@ export function SendSignalPage() {
   useEffect(() => {
     if (!contract) {
       console.log('Contract not initialized');
+      
+      // Check if we should auto-deploy the contract
+      // This can happen when navigating from another page with intent to deploy
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('deploy') === 'true') {
+        handleDeployContract();
+      }
     } else {
       console.log('Contract initialized:', contract.address.toString());
       setError(''); // Clear any contract initialization errors
@@ -110,7 +117,7 @@ export function SendSignalPage() {
       const deployedContract = await deploy();
       
       if (deployedContract) {
-        setSuccess(`Contract deployed successfully at ${deployedContract.address}`);
+        setSuccess(`Contract deployed successfully at ${contract.address.toString()}`);
       } else {
         setError('Failed to deploy contract');
       }
@@ -233,7 +240,7 @@ export function SendSignalPage() {
       setUserAddress(address);
       setSelectedUsername(username);
       setError('');
-      setSuccess(`Found user ${username} at address ${address.toString()}`);
+      setSuccess(`Found user ${username} address`);
     } catch (error) {
       console.error('Error searching for username:', error);
       setError('Failed to find user. Please check the username and try again.');
@@ -342,7 +349,7 @@ export function SendSignalPage() {
             )}
           </div>
           
-          {/* Contract status banner */}
+          {/* Contract status banner - show only one deploy button */}
           {!contract && (
             <div className="mb-6">
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">

@@ -175,8 +175,8 @@ AddressCommit: {
     /** nullify(nullifier: field) */
     nullify: ((nullifier: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** poke(instagram_id_receiver: string, receiver_addr: struct, mask: integer) */
-    poke: ((instagram_id_receiver: string, receiver_addr: AztecAddressLike, mask: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** poke(instagram_id_receiver: string, receiver_addr: struct, randomness: field, mask: integer) */
+    poke: ((instagram_id_receiver: string, receiver_addr: AztecAddressLike, randomness: FieldLike, mask: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

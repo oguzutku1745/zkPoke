@@ -28,14 +28,14 @@ export function ZkPokeRegisterPage() {
       fullName: 'Alice Wonderland',
       partialName: 'Alice W.',
       nationality: 'TR',
-      wallet: '0x1b7632af8b3cb6921631a6692c357ac7bac210fff6dce3e173ed8ef38bedeed6'
+      wallet: '0x154307e2c5e6b146106ad12642a7a1abef01990b0bc68b21c0de67267a705344'
     },
     bob: {
       instagram: '@akinspur',
       fullName: 'Akın Semih Pür',
       partialName: 'Akin Semih P.',
       nationality: 'TR',
-      wallet: '0x154307e2c5e6b146106ad12642a7a1abef01990b0bc68b21c0de67267a705344'
+      wallet: '0x1b7632af8b3cb6921631a6692c357ac7bac210fff6dce3e173ed8ef38bedeed6'
     }
   };
 
