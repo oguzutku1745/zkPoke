@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { usePrivateRegister } from '../hooks/usePrivateRegister';
 import { useNavigate, Link } from 'react-router-dom';
 import { useContractContext } from '../context/ContractContext';
@@ -83,6 +83,7 @@ export function SelectCredentialsPage() {
   const [instagramUserId, setInstagramUserId] = useState('');
   const [instagramEmailFile, setInstagramEmailFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [instagramEmlBase64, setInstagramEmlBase64] = useState<string | null>(null);
   
   // ZKPassport specific states
   const [showZkPassportFlow, setShowZkPassportFlow] = useState(false);
@@ -380,12 +381,99 @@ export function SelectCredentialsPage() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.name.endsWith('.eml')) {
-        setInstagramEmailFile(file);
+        handleInstagramFileChange(file);
       } else {
         // Show an error message for incorrect file type
         setError('Please upload a valid .eml file');
         setTimeout(() => setError(null), 3000);
       }
+    }
+  };
+
+  // Handle Instagram file upload and convert to base64
+  const handleInstagramFileChange = async (file: File) => {
+    try {
+      const buffer = await file.arrayBuffer();
+      // ArrayBuffer → Uint8Array → binary string → Base64
+      const binary = String.fromCharCode(...new Uint8Array(buffer));
+      const emlBase64 = btoa(binary);
+      setInstagramEmlBase64(emlBase64);
+      setInstagramEmailFile(file);
+    } catch (error) {
+      console.error('Error converting file to base64:', error);
+      setError('Error processing the file. Please try again.');
+    }
+  };
+
+  // Handle file input change
+  const handleFileInputChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.name.endsWith('.eml')) {
+      await handleInstagramFileChange(file);
+    } else {
+      setError('Please upload a valid .eml file');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  // Handle Instagram verification with backend
+  const verifyWithBackend = async () => {
+    if (!instagramEmail || !instagramUserId || !instagramEmlBase64) {
+      setError('Please provide all required information');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      console.log('Sending verification request to backend...');
+      console.log({
+        expectedEmail: instagramEmail,
+        expectedUsername: instagramUserId,
+        emlBase64Length: instagramEmlBase64.length,
+      });
+      
+      const response = await fetch("http://localhost:3001/verify", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          emlBase64: instagramEmlBase64,
+          expectedEmail: instagramEmail,
+          expectedUsername: instagramUserId,
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Backend response error:', response.status, errorText);
+        throw new Error(`Server error (${response.status}): ${errorText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || "Verification failed");
+      }
+      
+      console.log('Verification successful:', result);
+      setSuccess(`Verification successful! Leaf hash: ${result.leafHash}`);
+      
+      // Add Instagram credential
+      const credential = CREDENTIALS.find(cred => cred.id === 'instagram');
+      if (credential) {
+        // Use a simple number for the credential hash for now
+        await addCredential(credential.claimType, 1234);
+      }
+    } catch (error) {
+      console.error('Instagram verification error:', error);
+      setError(`Verification failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -625,7 +713,10 @@ export function SelectCredentialsPage() {
                       <p className="text-xs text-green-600">{instagramEmailFile.name} ({Math.round(instagramEmailFile.size / 1024)} KB)</p>
                       <button 
                         type="button" 
-                        onClick={() => setInstagramEmailFile(null)}
+                        onClick={() => {
+                          setInstagramEmailFile(null);
+                          setInstagramEmlBase64(null);
+                        }}
                         className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
                         Remove file
@@ -645,18 +736,7 @@ export function SelectCredentialsPage() {
                             type="file" 
                             accept=".eml" 
                             className="sr-only"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                const file = e.target.files[0];
-                                if (file.name.endsWith('.eml')) {
-                                  setInstagramEmailFile(file);
-                                } else {
-                                  // Show an error message for incorrect file type
-                                  setError('Please upload a valid .eml file');
-                                  setTimeout(() => setError(null), 3000);
-                                }
-                              }
-                            }}
+                            onChange={handleFileInputChange}
                           />
                         </label>
                         <p className="pl-1">or drag and drop</p>
@@ -727,53 +807,30 @@ export function SelectCredentialsPage() {
             
             <div className="flex justify-between">
               <button
-                onClick={handleSimulateInstagram}
-                disabled={isSubmitting || wait}
+                onClick={verifyWithBackend}
+                disabled={!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait}
                 className={`
                   py-2 px-4 rounded-md font-medium transition-all duration-200
-                  ${(isSubmitting || wait) 
+                  ${(!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait) 
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-gray-600 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                   }
                 `}
               >
-                {isSubmitting || wait ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </div>
-                ) : "Simulate"}
+                Verify
               </button>
               
-              <div className="flex space-x-4">
-                <button
-                  disabled={!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait}
-                  className={`
-                    py-2 px-4 rounded-md font-medium transition-all duration-200
-                    ${(!instagramEmail || !instagramUserId || !instagramEmailFile || isSubmitting || wait) 
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                    }
-                  `}
-                >
-                  Verify
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setShowInstagramForm(false);
-                    setInstagramEmail('');
-                    setInstagramUserId('');
-                    setInstagramEmailFile(null);
-                  }}
-                  className="py-2 px-4 rounded-md font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setShowInstagramForm(false);
+                  setInstagramEmail('');
+                  setInstagramUserId('');
+                  setInstagramEmailFile(null);
+                }}
+                className="py-2 px-4 rounded-md font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         ) : (
