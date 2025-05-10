@@ -27,13 +27,10 @@ impl PokeNote {
         full_name: FieldCompressedString,
         partial_name: FieldCompressedString,
         nationality: FieldCompressedString,
+        randomness: Field,
     ) -> Self {
-        // Safety: We use the randomness to preserve the privacy of the note recipient by preventing brute-forcing,
-        // so a malicious sender could use non-random values to make the note less private. But they already know
-        // the full note pre-image anyway, and so the recipient already trusts them to not disclose this
-        // information. We can therefore assume that the sender will cooperate in the random value generation.
-        let randomness = unsafe { random() };
-        Self { owner, sender, instagram_id_receiver, full_name, partial_name, nationality, instagram_id_sender, randomness }
+
+        Self { owner, sender, instagram_id_receiver, instagram_id_sender, full_name, partial_name, nationality,  randomness }
     }
 
     pub fn to_fields(self) -> [Field; 8] {

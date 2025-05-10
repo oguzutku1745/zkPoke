@@ -30,7 +30,7 @@ pub contract ZkPoke {
         userinfo   : Map<AztecAddress, PrivateImmutable<UserInfo, Context>, Context>,
         intention   : Map<Field, PublicMutable<u8, Context>, Context>,
         pokes       : Map<AztecAddress, PrivateSet<PokeNote, Context>, Context>,
-        nullifier_storage   : PublicImmutable<Field,Context>
+        nullifier_storage   : PublicImmutable<Field,Context>,
     }
 
     #[public]
@@ -69,8 +69,8 @@ pub contract ZkPoke {
             context.msg_sender(),
         ));
 
-        let ig_fcs         = FieldCompressedString::from_string(instagram_id);
-        let instagram_hash = poseidon2([as_field(ig_fcs)]);
+        //let ig_fcs         = FieldCompressedString::from_string(instagram_id);
+        //let instagram_hash = poseidon2([as_field(ig_fcs)]);
 
         
         //let register_note = AddressCommit::new(context.msg_sender());
@@ -82,10 +82,12 @@ pub contract ZkPoke {
         storage.nullifier_storage.initialize(nullifier)
     }
 
+    // TODO: Later, the hash of the note will directly be taken in the private contract; and the commit_hash will be updated accordingly. Time limit issues.
     #[private]
     fn poke (
         instagram_id_receiver:str<31>,
         receiver_addr: AztecAddress,
+        randomness: Field,
         // four booleans are packed by the caller to prevent manipulation of note context
         // into a 4-bit mask: bit-0 = ig, bit-1 = full, bit-2 = partial, bit-3 = nat
         mask : u32,      
@@ -117,7 +119,10 @@ pub contract ZkPoke {
             FieldCompressedString::from_field(masked[1]),
             FieldCompressedString::from_field(masked[2]),
             FieldCompressedString::from_field(masked[3]),
+            randomness,
         );
+
+        
 
         storage
             .pokes
@@ -125,7 +130,6 @@ pub contract ZkPoke {
             .insert(poke_note)
             .emit(encode_and_encrypt_note(&mut context, receiver_addr, context.msg_sender())
         );
-
     }
 
 
@@ -134,6 +138,7 @@ pub contract ZkPoke {
         storage.intention.at(commit_hash).write(0)
     }
 
+    // TODO: Later, the update_commitment will directly be called from respond_poke. Time limit issues
     #[private]
     fn respond_poke (commit_hash:Field, intention:u8, sender:AztecAddress) {
         let mut options = NoteGetterOptions::new();
