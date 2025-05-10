@@ -24,6 +24,7 @@
     "src/**/*.ts*",
     "tests/**/*.ts",
     "src/contracts/target/*.json",
+    "src/zkpoke/target/*.json",
     "artifacts/**/*.ts",
     "lean-imt-await/**/*.js",
     "lean-imt-await/**/*.ts"

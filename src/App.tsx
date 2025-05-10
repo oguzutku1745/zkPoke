@@ -6,6 +6,7 @@ import { LandingPage } from './pages/landingPage';
 import { SelectCredentialsPage } from './pages/selectCredentials';
 import { DashboardPage } from './pages/dashboard';
 import { PrivateRegisterPage } from './pages/privateRegister';
+import { ZkPokeRegisterPage } from './pages/ZkPokeRegister';
 import { TailwindTest } from './pages/TailwindTest';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SignalsDashboard } from './pages/signalsDashboard';
@@ -22,6 +23,7 @@ export function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/test" element={<TailwindTest />} />
           <Route path="/temp-zkpassport" element={<TempZkPassportPage />} />
+          <Route path="/zkpoke-register" element={<ZkPokeRegisterPage />} />
           
           {/* Protected setup pages */}
           <Route path="/select-credentials" element={
