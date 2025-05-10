@@ -16,7 +16,7 @@ interface ExposureOption {
 // Predefined test users
 const PREDEFINED_USERS = {
   alice: {
-    instagram: 'alice.eth',
+    instagram: '@alice.eth',
     fullName: 'Alice Wonderland',
     partialName: 'Alice W.',
     nationality: 'TR',

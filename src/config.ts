@@ -28,7 +28,7 @@ export const deployerEnv = await PrivateEnv.create(process.env.PXE_URL || 'http:
 export const userWallets = {
   alice: {
     name: 'Alice',
-    instagram: 'alice.eth',
+    instagram: '@alice.eth',
     index: 0,  // First wallet from getDeployedTestAccountsWallets
   },
   akin: {

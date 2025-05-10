@@ -24,7 +24,7 @@ export function ZkPokeRegisterPage() {
   // Predefined user information
   const users = {
     alice: {
-      instagram: 'alice.eth',
+      instagram: '@alice.eth',
       fullName: 'Alice Wonderland',
       partialName: 'Alice W.',
       nationality: 'TR',
