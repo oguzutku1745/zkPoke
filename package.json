@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "compile:backend": "cd src/instagram-social-verify && nargo compile --package instagram_example",
+    "compile:backend": "cd src/instagram-social-verify && nargo compile --package instagram_example && pnpm compile",
     "compile": "cd src/contracts && ${AZTEC_NARGO:-aztec-nargo} compile --silence-warnings && compile:backend",
     "codegen": "${AZTEC_BUILDER:-aztec} codegen src/contracts/target -o artifacts",
     "clean": "rm -rf ./dist .tsbuildinfo ./src/contracts/target",
@@ -17,7 +17,7 @@
     "build:backend": "cd src/instagram-social-verify/backend && npm run build",
     "build": "yarn prep && webpack && yarn build:backend",
     "web": "webpack serve --mode development",
-    "buildweb": "webpack",
+    "buildweb": "cd src/contracts && aztec-nargo compile --silence-warnings && cd ../instagram-social-verify && nargo compile --package instagram_example && pnpm compile && cd ../../ && webpack serve --mode development",
     "serve": "webpack serve --no-open --mode development --watch-files ./src/*",
     "formatting": "prettier --check ./src && eslint ./src",
     "formatting:fix": "prettier -w ./src",
