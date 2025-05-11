@@ -6,8 +6,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
+    "compile:contracts": "cd src/contracts && ${AZTEC_NARGO:-aztec-nargo} compile --silence-warnings",
     "compile:backend": "cd src/instagram-social-verify && nargo compile --package instagram_example && pnpm compile",
-    "compile": "cd src/contracts && ${AZTEC_NARGO:-aztec-nargo} compile --silence-warnings && compile:backend",
+    "compile": "yarn compile:contracts && yarn compile:backend",
     "codegen": "${AZTEC_BUILDER:-aztec} codegen src/contracts/target -o artifacts",
     "clean": "rm -rf ./dist .tsbuildinfo ./src/contracts/target",
     "prep": "yarn clean && yarn compile && yarn codegen",
@@ -16,14 +17,14 @@
     "dev": "yarn prep && webpack serve --mode development & yarn start:backend",
     "build:backend": "cd src/instagram-social-verify/backend && npm run build",
     "build": "yarn prep && webpack && yarn build:backend",
+    "buildweb": "yarn compile:contracts && cd src/instagram-social-verify && nargo compile --package instagram_example && pnpm compile && cd ../.. && webpack serve --mode development",
     "web": "webpack serve --mode development",
-    "buildweb": "cd src/contracts && aztec-nargo compile --silence-warnings && cd ../instagram-social-verify && nargo compile --package instagram_example && pnpm compile && cd ../../ && webpack serve --mode development",
     "serve": "webpack serve --no-open --mode development --watch-files ./src/*",
     "formatting": "prettier --check ./src && eslint ./src",
     "formatting:fix": "prettier -w ./src",
-    "test": "yarn test:node && yarn test:browser",
     "test:node": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest) --runInBand",
-    "test:browser": "npx playwright test"
+    "test:browser": "npx playwright test",
+    "test": "yarn test:node && yarn test:browser"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",
