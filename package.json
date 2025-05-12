@@ -17,7 +17,7 @@
     "dev": "yarn prep && webpack serve --mode development & yarn start:backend",
     "build:backend": "cd src/instagram-social-verify/backend && npm run build",
     "build": "yarn prep && webpack && yarn build:backend",
-    "buildweb": "cd src/instagram-social-verify && pnpm compile && cd ../.. && webpack serve --mode development",
+    "buildweb": "webpack serve --mode development",
     "web": "webpack serve --mode development",
     "serve": "webpack serve --no-open --mode development --watch-files ./src/*",
     "formatting": "prettier --check ./src && eslint ./src",
