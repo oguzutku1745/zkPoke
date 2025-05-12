@@ -3,8 +3,8 @@
   "private": true,
   "devDependencies": {
     "@noir-lang/noir_codegen": "1.0.0-beta.3",
-    "@noir-lang/noir_js": "latest",
-    "@types/node": "^22.15.17",
+    "@noir-lang/noir_js": "1.0.0-beta.3",
+    "@types/node": "^18.2.0",
     "@zk-email/zkemail-nr": "latest",
     "@zkpersona/noir-helpers": "latest",
     "typescript": "^5.4.0",
